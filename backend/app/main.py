@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.core.database import init_db, close_db
 from app.middleware.tenant import TenantMiddleware
 from app.middleware.logging import LoggingMiddleware
+from app.plugins import plugin_registry
 
 # Configure structured logging
 structlog.configure(
@@ -54,12 +55,35 @@ async def lifespan(app: FastAPI):
         logger.info("initializing_database")
         await init_db()
 
+    # Discover and load plugins
+    logger.info("discovering_plugins")
+    discovered_plugins = plugin_registry.discover_plugins()
+    logger.info("plugins_discovered", count=len(discovered_plugins), plugins=discovered_plugins)
+
+    # Load and enable plugins
+    for plugin_name in discovered_plugins:
+        plugin = plugin_registry.load_plugin(plugin_name)
+        if plugin:
+            await plugin_registry.enable_plugin(plugin_name)
+
+            # Register plugin routes
+            if plugin.get_router():
+                app.include_router(plugin.get_router(), prefix=settings.API_V1_PREFIX)
+                logger.info("plugin_routes_registered", plugin=plugin_name)
+
+    # Startup plugins
+    await plugin_registry.startup_plugins()
+
     logger.info("application_started")
 
     yield
 
     # Shutdown
     logger.info("shutting_down_application")
+
+    # Shutdown plugins
+    await plugin_registry.shutdown_plugins()
+
     await close_db()
     logger.info("application_shutdown_complete")
 
