@@ -4,6 +4,7 @@ Endpoints only accessible by super admins (Stumpf.works staff)
 """
 
 from fastapi import APIRouter
+
 from app.api.v1.super_admin import plugin_licenses
 
 # Super admin router

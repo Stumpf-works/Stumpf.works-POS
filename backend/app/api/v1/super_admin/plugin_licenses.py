@@ -3,18 +3,19 @@ Super Admin Plugin License Management API
 Only accessible by super admins to grant/revoke plugin licenses to tenants
 """
 
-from typing import List, Optional
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List, Optional
+
+import structlog
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-import structlog
 
-from app.models.user import User, UserRole
+from app.api.dependencies import get_current_user, get_db
 from app.models.plugin_license import PluginLicense
 from app.models.tenant import Tenant
-from app.api.dependencies import get_current_user, get_db
+from app.models.user import User, UserRole
 from app.plugins import plugin_registry
 
 logger = structlog.get_logger()
@@ -26,16 +27,17 @@ async def require_super_admin(current_user: User = Depends(get_current_user)) ->
     """Require user to be super admin."""
     if current_user.role != UserRole.SUPER_ADMIN:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Super admin access required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Super admin access required"
         )
     return current_user
 
 
 # Request/Response Models
 
+
 class PluginLicenseCreate(BaseModel):
     """Request to grant a plugin license."""
+
     tenant_id: str
     plugin_name: str
     license_type: str = "standard"  # standard, trial, enterprise
@@ -47,6 +49,7 @@ class PluginLicenseCreate(BaseModel):
 
 class PluginLicenseUpdate(BaseModel):
     """Request to update a plugin license."""
+
     is_active: Optional[bool] = None
     license_type: Optional[str] = None
     valid_until: Optional[datetime] = None
@@ -57,6 +60,7 @@ class PluginLicenseUpdate(BaseModel):
 
 class PluginLicenseInfo(BaseModel):
     """Plugin license information response."""
+
     id: int
     tenant_id: str
     tenant_name: str
@@ -77,6 +81,7 @@ class PluginLicenseInfo(BaseModel):
 
 class TenantWithLicenses(BaseModel):
     """Tenant with their plugin licenses."""
+
     tenant_id: str
     tenant_name: str
     active_licenses: int
@@ -85,6 +90,7 @@ class TenantWithLicenses(BaseModel):
 
 
 # Endpoints
+
 
 @router.get("/tenants", response_model=List[TenantWithLicenses])
 async def list_tenants_with_licenses(
@@ -110,18 +116,18 @@ async def list_tenants_with_licenses(
 
         active_licenses = [lic for lic in licenses if lic.is_valid]
 
-        tenant_data.append(TenantWithLicenses(
-            tenant_id=tenant.slug,
-            tenant_name=tenant.name,
-            active_licenses=len(active_licenses),
-            total_licenses=len(licenses),
-            plugins=[lic.plugin_name for lic in active_licenses],
-        ))
+        tenant_data.append(
+            TenantWithLicenses(
+                tenant_id=tenant.slug,
+                tenant_name=tenant.name,
+                active_licenses=len(active_licenses),
+                total_licenses=len(licenses),
+                plugins=[lic.plugin_name for lic in active_licenses],
+            )
+        )
 
     logger.info(
-        "tenants_with_licenses_listed",
-        user_id=current_user.id,
-        count=len(tenant_data)
+        "tenants_with_licenses_listed", user_id=current_user.id, count=len(tenant_data)
     )
 
     return tenant_data
@@ -166,34 +172,37 @@ async def list_plugin_licenses(
         # Get plugin display name
         plugin = plugin_registry.get_plugin(lic.plugin_name)
         plugin_display_name = (
-            plugin.get_display_name() if plugin and hasattr(plugin, 'get_display_name')
+            plugin.get_display_name()
+            if plugin and hasattr(plugin, "get_display_name")
             else lic.plugin_name
         )
 
-        licenses_info.append(PluginLicenseInfo(
-            id=lic.id,
-            tenant_id=lic.tenant_id,
-            tenant_name=tenant_name,
-            plugin_name=lic.plugin_name,
-            plugin_display_name=plugin_display_name,
-            is_active=lic.is_active,
-            is_valid=lic.is_valid,
-            license_type=lic.license_type,
-            valid_from=lic.valid_from,
-            valid_until=lic.valid_until,
-            days_remaining=lic.days_remaining,
-            max_users=lic.max_users,
-            max_locations=lic.max_locations,
-            notes=lic.notes,
-            granted_at=lic.granted_at,
-            created_at=lic.created_at,
-        ))
+        licenses_info.append(
+            PluginLicenseInfo(
+                id=lic.id,
+                tenant_id=lic.tenant_id,
+                tenant_name=tenant_name,
+                plugin_name=lic.plugin_name,
+                plugin_display_name=plugin_display_name,
+                is_active=lic.is_active,
+                is_valid=lic.is_valid,
+                license_type=lic.license_type,
+                valid_from=lic.valid_from,
+                valid_until=lic.valid_until,
+                days_remaining=lic.days_remaining,
+                max_users=lic.max_users,
+                max_locations=lic.max_locations,
+                notes=lic.notes,
+                granted_at=lic.granted_at,
+                created_at=lic.created_at,
+            )
+        )
 
     logger.info(
         "plugin_licenses_listed",
         user_id=current_user.id,
         count=len(licenses_info),
-        filters={"tenant_id": tenant_id, "plugin_name": plugin_name}
+        filters={"tenant_id": tenant_id, "plugin_name": plugin_name},
     )
 
     return licenses_info
@@ -218,28 +227,31 @@ async def grant_plugin_license(
     if not tenant:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tenant '{request.tenant_id}' not found"
+            detail=f"Tenant '{request.tenant_id}' not found",
         )
 
     # Verify plugin exists
     if request.plugin_name not in plugin_registry.discover_plugins():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Plugin '{request.plugin_name}' not found"
+            detail=f"Plugin '{request.plugin_name}' not found",
         )
 
     # Check if license already exists
     existing_result = await db.execute(
         select(PluginLicense).where(
             PluginLicense.tenant_id == request.tenant_id,
-            PluginLicense.plugin_name == request.plugin_name
+            PluginLicense.plugin_name == request.plugin_name,
         )
     )
     existing = existing_result.scalar_one_or_none()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"License already exists for '{request.plugin_name}' (ID: {existing.id}). Use PATCH to update."
+            detail=(
+                f"License already exists for '{request.plugin_name}' "
+                f"(ID: {existing.id}). Use PATCH to update."
+            ),
         )
 
     # Calculate valid_until
@@ -269,7 +281,8 @@ async def grant_plugin_license(
     # Get plugin display name
     plugin = plugin_registry.get_plugin(request.plugin_name)
     plugin_display_name = (
-        plugin.get_display_name() if plugin and hasattr(plugin, 'get_display_name')
+        plugin.get_display_name()
+        if plugin and hasattr(plugin, "get_display_name")
         else request.plugin_name
     )
 
@@ -322,7 +335,7 @@ async def update_plugin_license(
     if not license:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"License {license_id} not found"
+            detail=f"License {license_id} not found",
         )
 
     # Update fields
@@ -352,7 +365,8 @@ async def update_plugin_license(
     # Get plugin display name
     plugin = plugin_registry.get_plugin(license.plugin_name)
     plugin_display_name = (
-        plugin.get_display_name() if plugin and hasattr(plugin, 'get_display_name')
+        plugin.get_display_name()
+        if plugin and hasattr(plugin, "get_display_name")
         else license.plugin_name
     )
 
@@ -360,7 +374,7 @@ async def update_plugin_license(
         "plugin_license_updated",
         license_id=license_id,
         updated_by=current_user.id,
-        changes=request.dict(exclude_unset=True)
+        changes=request.dict(exclude_unset=True),
     )
 
     return PluginLicenseInfo(
@@ -403,7 +417,7 @@ async def revoke_plugin_license(
     if not license:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"License {license_id} not found"
+            detail=f"License {license_id} not found",
         )
 
     tenant_id = license.tenant_id
@@ -421,7 +435,7 @@ async def revoke_plugin_license(
             logger.warning(
                 "failed_to_disable_plugin_after_license_revoke",
                 plugin=plugin_name,
-                error=str(e)
+                error=str(e),
             )
 
     logger.info(
@@ -453,7 +467,7 @@ async def extend_plugin_license(
     if not license:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"License {license_id} not found"
+            detail=f"License {license_id} not found",
         )
 
     # Extend
@@ -478,5 +492,5 @@ async def extend_plugin_license(
         "message": f"License extended by {days} days",
         "license_id": license_id,
         "valid_until": license.valid_until,
-        "days_remaining": license.days_remaining
+        "days_remaining": license.days_remaining,
     }
