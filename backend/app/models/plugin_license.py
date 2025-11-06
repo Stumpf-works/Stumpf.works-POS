@@ -3,9 +3,10 @@ Plugin License Model
 Tracks which plugins are licensed to which tenants
 """
 
-from sqlalchemy import Column, String, Boolean, DateTime, Text, JSON, Integer
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
+
+from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, Text
 
 from app.models.base import BaseModel
 
@@ -47,7 +48,10 @@ class PluginLicense(BaseModel):
     granted_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     def __repr__(self) -> str:
-        return f"<PluginLicense(tenant={self.tenant_id}, plugin={self.plugin_name}, active={self.is_active})>"
+        return (
+            f"<PluginLicense(tenant={self.tenant_id}, "
+            f"plugin={self.plugin_name}, active={self.is_active})>"
+        )
 
     @property
     def is_valid(self) -> bool:

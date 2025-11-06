@@ -4,15 +4,16 @@ Allows tenant admins to manage LICENSED plugins for their tenant
 """
 
 from typing import List, Optional
+
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-import structlog
 
-from app.models.user import User
+from app.api.dependencies import get_db, require_admin
 from app.models.plugin_license import PluginLicense
-from app.api.dependencies import require_admin, get_db
+from app.models.user import User
 from app.plugins import plugin_registry
 
 logger = structlog.get_logger()
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/plugins", tags=["Plugins"])
 
 class PluginInfo(BaseModel):
     """Plugin information response."""
+
     name: str
     display_name: str
     description: str
@@ -41,36 +43,35 @@ class PluginInfo(BaseModel):
 
 class PluginConfig(BaseModel):
     """Plugin configuration."""
+
     enabled: bool
     config: Optional[dict] = None
 
 
 class PluginEnableRequest(BaseModel):
     """Request to enable a plugin."""
+
     config: Optional[dict] = None
 
 
 # Helper Functions
 
+
 async def get_plugin_license(
-    db: AsyncSession,
-    tenant_id: str,
-    plugin_name: str
+    db: AsyncSession, tenant_id: str, plugin_name: str
 ) -> Optional[PluginLicense]:
     """Get plugin license for tenant."""
     result = await db.execute(
         select(PluginLicense).where(
             PluginLicense.tenant_id == tenant_id,
-            PluginLicense.plugin_name == plugin_name
+            PluginLicense.plugin_name == plugin_name,
         )
     )
     return result.scalar_one_or_none()
 
 
 async def check_plugin_licensed(
-    db: AsyncSession,
-    tenant_id: str,
-    plugin_name: str
+    db: AsyncSession, tenant_id: str, plugin_name: str
 ) -> tuple[bool, Optional[PluginLicense]]:
     """Check if plugin is licensed and valid for tenant."""
     license = await get_plugin_license(db, tenant_id, plugin_name)
@@ -103,45 +104,73 @@ async def list_plugins(
 
         if plugin:
             # Plugin is loaded
-            plugins_info.append(PluginInfo(
-                name=plugin_name,
-                display_name=plugin.get_display_name() if hasattr(plugin, 'get_display_name') else plugin_name,
-                description=plugin.get_description() if hasattr(plugin, 'get_description') else "No description",
-                version=plugin.get_version(),
-                author=plugin.get_author() if hasattr(plugin, 'get_author') else None,
-                category=plugin.get_category() if hasattr(plugin, 'get_category') else "general",
-                is_enabled=plugin_registry.is_enabled(plugin_name),
-                is_loaded=True,
-                requires=plugin.get_requires() if hasattr(plugin, 'get_requires') else [],
-                config_schema=plugin.get_config_schema() if hasattr(plugin, 'get_config_schema') else None,
-                is_licensed=True,
-                license_type=license.license_type,
-                license_valid=license.is_valid,
-                license_expires=license.valid_until.isoformat() if license.valid_until else None,
-                days_remaining=license.days_remaining,
-            ))
+            plugins_info.append(
+                PluginInfo(
+                    name=plugin_name,
+                    display_name=(
+                        plugin.get_display_name()
+                        if hasattr(plugin, "get_display_name")
+                        else plugin_name
+                    ),
+                    description=(
+                        plugin.get_description()
+                        if hasattr(plugin, "get_description")
+                        else "No description"
+                    ),
+                    version=plugin.get_version(),
+                    author=(
+                        plugin.get_author() if hasattr(plugin, "get_author") else None
+                    ),
+                    category=(
+                        plugin.get_category()
+                        if hasattr(plugin, "get_category")
+                        else "general"
+                    ),
+                    is_enabled=plugin_registry.is_enabled(plugin_name),
+                    is_loaded=True,
+                    requires=(
+                        plugin.get_requires() if hasattr(plugin, "get_requires") else []
+                    ),
+                    config_schema=(
+                        plugin.get_config_schema()
+                        if hasattr(plugin, "get_config_schema")
+                        else None
+                    ),
+                    is_licensed=True,
+                    license_type=license.license_type,
+                    license_valid=license.is_valid,
+                    license_expires=(
+                        license.valid_until.isoformat() if license.valid_until else None
+                    ),
+                    days_remaining=license.days_remaining,
+                )
+            )
         else:
             # Plugin is licensed but not loaded yet
-            plugins_info.append(PluginInfo(
-                name=plugin_name,
-                display_name=plugin_name,
-                description="Plugin not loaded",
-                version="unknown",
-                category="general",
-                is_enabled=False,
-                is_loaded=False,
-                is_licensed=True,
-                license_type=license.license_type,
-                license_valid=license.is_valid,
-                license_expires=license.valid_until.isoformat() if license.valid_until else None,
-                days_remaining=license.days_remaining,
-            ))
+            plugins_info.append(
+                PluginInfo(
+                    name=plugin_name,
+                    display_name=plugin_name,
+                    description="Plugin not loaded",
+                    version="unknown",
+                    category="general",
+                    is_enabled=False,
+                    is_loaded=False,
+                    is_licensed=True,
+                    license_type=license.license_type,
+                    license_valid=license.is_valid,
+                    license_expires=(
+                        license.valid_until.isoformat() if license.valid_until else None
+                    ),
+                    days_remaining=license.days_remaining,
+                )
+            )
 
     logger.info(
         "plugins_listed",
         user_id=current_user.id,
         tenant_id=current_user.tenant_id,
-        count=len(plugins_info)
+        count=len(plugins_info),
     )
 
     return plugins_info
@@ -159,11 +188,16 @@ async def get_plugin_info(
     Only shows plugins that the tenant has a valid license for.
     """
     # Check license
-    is_licensed, license = await check_plugin_licensed(db, current_user.tenant_id, plugin_name)
+    is_licensed, license = await check_plugin_licensed(
+        db, current_user.tenant_id, plugin_name
+    )
     if not is_licensed or not license:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"No valid license for plugin '{plugin_name}'. Contact Stumpf.works to obtain a license."
+            detail=(
+                f"No valid license for plugin '{plugin_name}'. "
+                "Contact Stumpf.works to obtain a license."
+            ),
         )
 
     plugin = plugin_registry.get_plugin(plugin_name)
@@ -171,24 +205,38 @@ async def get_plugin_info(
     if not plugin:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Plugin '{plugin_name}' not found or not loaded"
+            detail=f"Plugin '{plugin_name}' not found or not loaded",
         )
 
     return PluginInfo(
         name=plugin_name,
-        display_name=plugin.get_display_name() if hasattr(plugin, 'get_display_name') else plugin_name,
-        description=plugin.get_description() if hasattr(plugin, 'get_description') else "No description",
+        display_name=(
+            plugin.get_display_name()
+            if hasattr(plugin, "get_display_name")
+            else plugin_name
+        ),
+        description=(
+            plugin.get_description()
+            if hasattr(plugin, "get_description")
+            else "No description"
+        ),
         version=plugin.get_version(),
-        author=plugin.get_author() if hasattr(plugin, 'get_author') else None,
-        category=plugin.get_category() if hasattr(plugin, 'get_category') else "general",
+        author=plugin.get_author() if hasattr(plugin, "get_author") else None,
+        category=(
+            plugin.get_category() if hasattr(plugin, "get_category") else "general"
+        ),
         is_enabled=plugin_registry.is_enabled(plugin_name),
         is_loaded=True,
-        requires=plugin.get_requires() if hasattr(plugin, 'get_requires') else [],
-        config_schema=plugin.get_config_schema() if hasattr(plugin, 'get_config_schema') else None,
+        requires=plugin.get_requires() if hasattr(plugin, "get_requires") else [],
+        config_schema=(
+            plugin.get_config_schema() if hasattr(plugin, "get_config_schema") else None
+        ),
         is_licensed=True,
         license_type=license.license_type,
         license_valid=license.is_valid,
-        license_expires=license.valid_until.isoformat() if license.valid_until else None,
+        license_expires=(
+            license.valid_until.isoformat() if license.valid_until else None
+        ),
         days_remaining=license.days_remaining,
     )
 
@@ -213,11 +261,16 @@ async def enable_plugin(
     """
     try:
         # CHECK LICENSE FIRST
-        is_licensed, license = await check_plugin_licensed(db, current_user.tenant_id, plugin_name)
+        is_licensed, license = await check_plugin_licensed(
+            db, current_user.tenant_id, plugin_name
+        )
         if not is_licensed or not license:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"No valid license for plugin '{plugin_name}'. Contact Stumpf.works support to obtain a license."
+                detail=(
+                    f"No valid license for plugin '{plugin_name}'. "
+                    "Contact Stumpf.works support to obtain a license."
+                ),
             )
 
         # Show trial warning
@@ -226,14 +279,14 @@ async def enable_plugin(
                 "trial_plugin_enabled",
                 plugin=plugin_name,
                 tenant=current_user.tenant_id,
-                days_remaining=license.days_remaining
+                days_remaining=license.days_remaining,
             )
 
         # Check if plugin exists
         if plugin_name not in plugin_registry.discover_plugins():
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Plugin '{plugin_name}' not found"
+                detail=f"Plugin '{plugin_name}' not found",
             )
 
         # Load plugin if not loaded
@@ -243,21 +296,24 @@ async def enable_plugin(
             if not plugin:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Failed to load plugin '{plugin_name}'"
+                    detail=f"Failed to load plugin '{plugin_name}'",
                 )
 
         # Check dependencies
-        if hasattr(plugin, 'get_requires'):
+        if hasattr(plugin, "get_requires"):
             required = plugin.get_requires()
             for req_plugin in required:
                 if not plugin_registry.is_enabled(req_plugin):
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Plugin '{plugin_name}' requires '{req_plugin}' to be enabled first"
+                        detail=(
+                            f"Plugin '{plugin_name}' requires "
+                            f"'{req_plugin}' to be enabled first"
+                        ),
                     )
 
         # Configure plugin if config provided
-        if request.config and hasattr(plugin, 'configure'):
+        if request.config and hasattr(plugin, "configure"):
             plugin.configure(request.config)
 
         # Enable plugin
@@ -273,21 +329,18 @@ async def enable_plugin(
         return {
             "message": f"Plugin '{plugin_name}' enabled successfully",
             "plugin": plugin_name,
-            "status": "enabled"
+            "status": "enabled",
         }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(
-            "plugin_enable_failed",
-            plugin=plugin_name,
-            error=str(e),
-            exc_info=True
+            "plugin_enable_failed", plugin=plugin_name, error=str(e), exc_info=True
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to enable plugin: {str(e)}"
+            detail=f"Failed to enable plugin: {str(e)}",
         )
 
 
@@ -310,14 +363,14 @@ async def disable_plugin(
         if not plugin:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Plugin '{plugin_name}' not found or not loaded"
+                detail=f"Plugin '{plugin_name}' not found or not loaded",
             )
 
         # Check if other plugins depend on this one
         dependencies = []
         for other_plugin_name in plugin_registry.discover_plugins():
             other_plugin = plugin_registry.get_plugin(other_plugin_name)
-            if other_plugin and hasattr(other_plugin, 'get_requires'):
+            if other_plugin and hasattr(other_plugin, "get_requires"):
                 if plugin_name in other_plugin.get_requires():
                     if plugin_registry.is_enabled(other_plugin_name):
                         dependencies.append(other_plugin_name)
@@ -325,7 +378,7 @@ async def disable_plugin(
         if dependencies:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot disable '{plugin_name}'. Required by: {', '.join(dependencies)}"
+                detail=f"Cannot disable '{plugin_name}'. Required by: {', '.join(dependencies)}",
             )
 
         # Disable plugin
@@ -342,21 +395,18 @@ async def disable_plugin(
             "message": f"Plugin '{plugin_name}' disabled successfully",
             "plugin": plugin_name,
             "status": "disabled",
-            "note": "Application restart may be required for full effect"
+            "note": "Application restart may be required for full effect",
         }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(
-            "plugin_disable_failed",
-            plugin=plugin_name,
-            error=str(e),
-            exc_info=True
+            "plugin_disable_failed", plugin=plugin_name, error=str(e), exc_info=True
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to disable plugin: {str(e)}"
+            detail=f"Failed to disable plugin: {str(e)}",
         )
 
 
@@ -373,11 +423,13 @@ async def update_plugin_config(
     Requires a valid license for the plugin.
     """
     # Check license
-    is_licensed, license = await check_plugin_licensed(db, current_user.tenant_id, plugin_name)
+    is_licensed, license = await check_plugin_licensed(
+        db, current_user.tenant_id, plugin_name
+    )
     if not is_licensed or not license:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"No valid license for plugin '{plugin_name}'. Contact Stumpf.works support."
+            detail=f"No valid license for plugin '{plugin_name}'. Contact Stumpf.works support.",
         )
 
     plugin = plugin_registry.get_plugin(plugin_name)
@@ -385,13 +437,13 @@ async def update_plugin_config(
     if not plugin:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Plugin '{plugin_name}' not found"
+            detail=f"Plugin '{plugin_name}' not found",
         )
 
-    if not hasattr(plugin, 'configure'):
+    if not hasattr(plugin, "configure"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Plugin '{plugin_name}' does not support configuration"
+            detail=f"Plugin '{plugin_name}' does not support configuration",
         )
 
     try:
@@ -405,12 +457,12 @@ async def update_plugin_config(
 
         return {
             "message": f"Plugin '{plugin_name}' configured successfully",
-            "config": config
+            "config": config,
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid configuration: {str(e)}"
+            detail=f"Invalid configuration: {str(e)}",
         )
 
 
@@ -427,43 +479,43 @@ async def get_plugin_categories(
         "restaurant": {
             "name": "Restaurant",
             "description": "Plugins for restaurant and gastronomy",
-            "icon": "🍽️"
+            "icon": "🍽️",
         },
         "retail": {
             "name": "Einzelhandel",
             "description": "Plugins for retail stores",
-            "icon": "🛒"
+            "icon": "🛒",
         },
         "pharmacy": {
             "name": "Apotheke",
             "description": "Plugins for pharmacies",
-            "icon": "💊"
+            "icon": "💊",
         },
         "bakery": {
             "name": "Bäckerei",
             "description": "Plugins for bakeries",
-            "icon": "🥖"
+            "icon": "🥖",
         },
         "general": {
             "name": "Allgemein",
             "description": "General purpose plugins",
-            "icon": "⚙️"
+            "icon": "⚙️",
         },
         "hardware": {
             "name": "Hardware",
             "description": "Hardware integration plugins",
-            "icon": "🖨️"
+            "icon": "🖨️",
         },
         "payment": {
             "name": "Zahlung",
             "description": "Payment provider plugins",
-            "icon": "💳"
+            "icon": "💳",
         },
         "analytics": {
             "name": "Analytics",
             "description": "Analytics and reporting plugins",
-            "icon": "📊"
-        }
+            "icon": "📊",
+        },
     }
 
     return categories
