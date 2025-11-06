@@ -91,6 +91,20 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
 
+    # Security & Production
+    ALLOWED_ORIGINS: Optional[str] = None  # Comma-separated list for production
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_PER_MINUTE: int = 60
+
+    # Error Tracking (Sentry)
+    SENTRY_DSN: Optional[str] = None
+    SENTRY_ENVIRONMENT: Optional[str] = None
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1
+
+    # Feature Flags
+    SUMUP_ENABLED: bool = False
+    OFFLINE_MODE_ENABLED: bool = True
+
     @property
     def is_production(self) -> bool:
         """Check if running in production environment."""

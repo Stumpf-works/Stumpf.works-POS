@@ -41,6 +41,8 @@ click==8.1.7
 # Logging & Monitoring
 structlog==23.2.0
 python-json-logger==2.0.7
+sentry-sdk[fastapi]==1.39.1
+psutil==5.9.6
 
 # Testing
 pytest==7.4.3
