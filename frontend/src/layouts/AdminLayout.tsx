@@ -16,12 +16,17 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { path: '/admin', label: 'Dashboard', icon: '📊' },
-  { path: '/admin/users', label: 'Benutzer', icon: '👥', requiredRole: ['admin'] },
+  { path: '/admin/users', label: 'Benutzer', icon: '👥', requiredRole: ['admin', 'super_admin'] },
   { path: '/admin/products', label: 'Produkte', icon: '📦' },
   { path: '/admin/transactions', label: 'Transaktionen', icon: '💳' },
   { path: '/admin/reports', label: 'Berichte', icon: '📈' },
-  { path: '/admin/exports', label: 'Exporte', icon: '📤', requiredRole: ['admin'] },
-  { path: '/admin/settings', label: 'Einstellungen', icon: '⚙️', requiredRole: ['admin'] },
+  { path: '/admin/exports', label: 'Exporte', icon: '📤', requiredRole: ['admin', 'super_admin'] },
+  { path: '/admin/plugins', label: 'Plugins', icon: '🧩', requiredRole: ['admin', 'super_admin'] },
+  { path: '/admin/settings', label: 'Einstellungen', icon: '⚙️', requiredRole: ['admin', 'super_admin'] },
+]
+
+const superAdminItems: NavItem[] = [
+  { path: '/super-admin/plugin-licenses', label: 'Lizenzverwaltung', icon: '🔐', requiredRole: ['super_admin'] },
 ]
 
 export default function AdminLayout() {
@@ -73,6 +78,30 @@ export default function AdminLayout() {
                 </li>
               ))}
           </ul>
+
+          {/* Super Admin Section */}
+          {user?.role === 'super_admin' && (
+            <>
+              {sidebarOpen && <div className="nav-divider">SUPER ADMIN</div>}
+              <ul>
+                {superAdminItems
+                  .filter(canAccessItem)
+                  .map((item) => (
+                    <li key={item.path}>
+                      <Link
+                        to={item.path}
+                        className={`nav-item ${
+                          location.pathname === item.path ? 'active' : ''
+                        }`}
+                      >
+                        <span className="nav-icon">{item.icon}</span>
+                        {sidebarOpen && <span className="nav-label">{item.label}</span>}
+                      </Link>
+                    </li>
+                  ))}
+              </ul>
+            </>
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -188,6 +217,17 @@ export default function AdminLayout() {
 
         .nav-label {
           white-space: nowrap;
+        }
+
+        .nav-divider {
+          padding: 1rem 1.5rem 0.5rem;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: rgba(255, 255, 255, 0.5);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-top: 1rem;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .sidebar-footer {

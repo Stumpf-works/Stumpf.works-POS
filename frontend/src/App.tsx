@@ -13,12 +13,17 @@ import AdminDashboardPage from '@/pages/admin/DashboardPage'
 import UsersPage from '@/pages/admin/UsersPage'
 import ReportsPage from '@/pages/admin/ReportsPage'
 import ExportsPage from '@/pages/admin/ExportsPage'
+import PluginsPage from '@/pages/admin/PluginsPage'
 import SettingsPage from '@/pages/admin/SettingsPage'
+
+// Super Admin Pages
+import PluginLicensesPage from '@/pages/super-admin/PluginLicensesPage'
 
 function App() {
   const { isAuthenticated, user } = useAuthStore()
 
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
+  const isSuperAdmin = user?.role === 'super_admin'
 
   return (
     <>
@@ -57,7 +62,26 @@ function App() {
           <Route path="transactions" element={<Navigate to="/admin" />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="exports" element={<ExportsPage />} />
+          <Route path="plugins" element={<PluginsPage />} />
           <Route path="settings" element={<SettingsPage />} />
+        </Route>
+
+        {/* Super Admin routes */}
+        <Route
+          path="/super-admin"
+          element={
+            isAuthenticated ? (
+              isSuperAdmin ? (
+                <AdminLayout />
+              ) : (
+                <Navigate to="/" />
+              )
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        >
+          <Route path="plugin-licenses" element={<PluginLicensesPage />} />
         </Route>
 
         {/* Catch all */}
