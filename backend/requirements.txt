@@ -1,0 +1,81 @@
+# ================================
+# Stumpf.works POS - Backend Dependencies
+# ================================
+
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database
+sqlalchemy==2.0.23
+alembic==1.12.1
+psycopg2-binary==2.9.9
+asyncpg==0.29.0
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+bcrypt==4.1.1
+
+# Redis & Celery
+redis==5.0.1
+celery==5.3.4
+flower==2.0.1
+
+# HTTP Client
+httpx==0.25.2
+aiohttp==3.9.1
+
+# Data Validation & Serialization
+email-validator==2.1.0
+python-dateutil==2.8.2
+
+# Utilities
+python-dotenv==1.0.0
+pyyaml==6.0.1
+click==8.1.7
+
+# Logging & Monitoring
+structlog==23.2.0
+python-json-logger==2.0.7
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+httpx==0.25.2
+faker==20.1.0
+
+# Code Quality
+black==23.12.0
+isort==5.13.0
+flake8==6.1.0
+mypy==1.7.1
+pylint==3.0.3
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.5.2
+
+# SumUp & Payment
+# (httpx already included)
+
+# TSE / Fiskaly Integration
+# (httpx already included for API calls)
+
+# GoBD / DSFinV-K Export
+lxml==4.9.3
+openpyxl==3.1.2
+
+# WebSocket
+websockets==12.0
+
+# CORS
+# (included in FastAPI)
+
+# Development
+watchfiles==0.21.0
