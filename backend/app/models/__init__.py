@@ -8,6 +8,7 @@ from app.models.tenant import Tenant, TenantStatus
 from app.models.user import User, UserRole
 from app.models.product import Product, ProductCategory, VATRate
 from app.models.transaction import Transaction, TransactionItem, PaymentMethod, TransactionStatus
+from app.models.plugin_license import PluginLicense
 
 __all__ = [
     # Base
@@ -29,4 +30,6 @@ __all__ = [
     "TransactionItem",
     "PaymentMethod",
     "TransactionStatus",
+    # Plugin License
+    "PluginLicense",
 ]
