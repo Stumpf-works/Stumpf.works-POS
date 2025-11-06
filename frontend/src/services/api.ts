@@ -126,6 +126,49 @@ export const api = {
     refresh: (refresh_token: string) =>
       api.post('/auth/refresh', { refresh_token }),
   },
+
+  // Product endpoints
+  products: {
+    list: (params?: any) => api.get('/products', { params }),
+
+    get: (id: number) => api.get(`/products/${id}`),
+
+    create: (data: any) => api.post('/products', data),
+
+    update: (id: number, data: any) => api.put(`/products/${id}`, data),
+
+    delete: (id: number) => api.delete(`/products/${id}`),
+
+    adjustStock: (id: number, quantity: number, reason?: string) =>
+      api.post(`/products/${id}/stock`, { quantity, reason }),
+  },
+
+  // Product categories
+  categories: {
+    list: (params?: any) => api.get('/products/categories', { params }),
+
+    get: (id: number) => api.get(`/products/categories/${id}`),
+
+    create: (data: any) => api.post('/products/categories', data),
+
+    update: (id: number, data: any) => api.put(`/products/categories/${id}`, data),
+
+    delete: (id: number) => api.delete(`/products/categories/${id}`),
+  },
+
+  // Transaction endpoints
+  transactions: {
+    list: (params?: any) => api.get('/transactions', { params }),
+
+    get: (id: number) => api.get(`/transactions/${id}`),
+
+    create: (data: any) => api.post('/transactions', data),
+
+    cancel: (id: number, reason?: string) =>
+      api.post(`/transactions/${id}/cancel`, { reason }),
+
+    stats: (params?: any) => api.get('/transactions/stats/summary', { params }),
+  },
 }
 
 export default apiClient
