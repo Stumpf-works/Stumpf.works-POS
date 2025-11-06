@@ -11,6 +11,7 @@ from sqlalchemy import select, func
 import structlog
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.models.transaction import Transaction, TransactionItem, PaymentMethod, TransactionStatus
 from app.models.product import Product
 from app.models.user import User
@@ -24,6 +25,7 @@ from app.schemas.transaction import (
 from app.schemas.base import MessageResponse
 from app.api.dependencies import get_current_user, require_cashier
 from app.utils.helpers import generate_receipt_number
+from app.services.tse.tasks import sign_transaction_async
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
@@ -239,8 +241,10 @@ async def create_transaction(
         user_id=current_user.id,
     )
 
-    # Note: TSE signature will be added asynchronously via Celery task
-    # TODO: Trigger TSE signature task
+    # Trigger TSE signature task asynchronously
+    if settings.TSE_ENABLED:
+        sign_transaction_async.delay(transaction.id, current_user.tenant_id)
+        logger.info("tse_signing_task_queued", transaction_id=transaction.id)
 
     return transaction
 

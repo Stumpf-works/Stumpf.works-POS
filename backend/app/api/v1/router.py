@@ -4,7 +4,7 @@ Registers all v1 API endpoints
 """
 
 from fastapi import APIRouter
-from app.api.v1 import auth, products, transactions
+from app.api.v1 import auth, products, transactions, exports
 
 # Create main API router
 api_router = APIRouter()
@@ -13,6 +13,7 @@ api_router = APIRouter()
 api_router.include_router(auth.router)
 api_router.include_router(products.router)
 api_router.include_router(transactions.router)
+api_router.include_router(exports.router)
 
 # Add more routers as they're created:
 # api_router.include_router(users.router)
