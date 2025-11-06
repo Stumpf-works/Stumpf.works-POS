@@ -5,7 +5,6 @@ FastAPI application with multi-tenant support, Cloud-TSE, and SumUp integration
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -13,27 +12,29 @@ import structlog
 
 from app.core.config import settings
 from app.core.database import init_db, close_db
+from app.core.logging_config import configure_logging
+from app.core.error_tracking import configure_error_tracking, capture_exception
+
+# Import Middleware
 from app.middleware.tenant import TenantMiddleware
-from app.middleware.logging import LoggingMiddleware
+from app.middleware.cors import configure_cors
+from app.middleware.rate_limit import RateLimitMiddleware, rate_limiter
+from app.middleware.security import (
+    SecurityHeadersMiddleware,
+    RequestIDMiddleware,
+    SecurityAuditMiddleware,
+    SQLInjectionProtectionMiddleware
+)
+from app.core.logging_config import LoggingMiddleware
+
 from app.plugins import plugin_registry
 
 # Configure structured logging
-structlog.configure(
-    processors=[
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.add_log_level,
-        structlog.processors.JSONRenderer() if settings.LOG_FORMAT == "json"
-        else structlog.dev.ConsoleRenderer()
-    ],
-    wrapper_class=structlog.make_filtering_bound_logger(
-        getattr(structlog.stdlib, settings.LOG_LEVEL)
-    ),
-    context_class=dict,
-    logger_factory=structlog.PrintLoggerFactory(),
-    cache_logger_on_first_use=True,
-)
-
+configure_logging()
 logger = structlog.get_logger()
+
+# Configure error tracking (Sentry)
+configure_error_tracking()
 
 
 @asynccontextmanager
@@ -44,16 +45,26 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     logger.info(
-        "starting_application",
+        "application_starting",
         app_name=settings.APP_NAME,
         version=settings.APP_VERSION,
-        environment=settings.ENVIRONMENT
+        environment=settings.ENVIRONMENT,
+        debug=settings.DEBUG,
     )
 
     # Initialize database (only in development, use Alembic in production)
     if settings.is_development:
         logger.info("initializing_database")
-        await init_db()
+        try:
+            await init_db()
+        except Exception as e:
+            logger.error("database_init_failed", error=str(e), exc_info=True)
+
+    # Start rate limiter cleanup task
+    if settings.RATE_LIMIT_ENABLED:
+        import asyncio
+        asyncio.create_task(rate_limiter.cleanup_old_entries())
+        logger.info("rate_limiter_enabled", per_minute=settings.RATE_LIMIT_PER_MINUTE)
 
     # Discover and load plugins
     logger.info("discovering_plugins")
@@ -62,27 +73,44 @@ async def lifespan(app: FastAPI):
 
     # Load and enable plugins
     for plugin_name in discovered_plugins:
-        plugin = plugin_registry.load_plugin(plugin_name)
-        if plugin:
-            await plugin_registry.enable_plugin(plugin_name)
+        try:
+            plugin = plugin_registry.load_plugin(plugin_name)
+            if plugin:
+                await plugin_registry.enable_plugin(plugin_name)
 
-            # Register plugin routes
-            if plugin.get_router():
-                app.include_router(plugin.get_router(), prefix=settings.API_V1_PREFIX)
-                logger.info("plugin_routes_registered", plugin=plugin_name)
+                # Register plugin routes
+                if plugin.get_router():
+                    app.include_router(plugin.get_router(), prefix=settings.API_V1_PREFIX)
+                    logger.info("plugin_routes_registered", plugin=plugin_name)
+        except Exception as e:
+            logger.error("plugin_load_failed", plugin=plugin_name, error=str(e))
 
     # Startup plugins
-    await plugin_registry.startup_plugins()
+    try:
+        await plugin_registry.startup_plugins()
+    except Exception as e:
+        logger.error("plugin_startup_failed", error=str(e))
 
-    logger.info("application_started")
+    logger.info(
+        "application_started",
+        features={
+            "tse_enabled": settings.TSE_ENABLED,
+            "sumup_enabled": settings.SUMUP_ENABLED,
+            "rate_limiting": settings.RATE_LIMIT_ENABLED,
+            "sentry": bool(settings.SENTRY_DSN),
+        }
+    )
 
     yield
 
     # Shutdown
-    logger.info("shutting_down_application")
+    logger.info("application_shutting_down")
 
     # Shutdown plugins
-    await plugin_registry.shutdown_plugins()
+    try:
+        await plugin_registry.shutdown_plugins()
+    except Exception as e:
+        logger.error("plugin_shutdown_failed", error=str(e))
 
     await close_db()
     logger.info("application_shutdown_complete")
@@ -93,30 +121,44 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="Multi-Tenant Cloud POS System for German Market (GoBD/KassenSichV compliant)",
-    docs_url="/docs" if not settings.is_production else None,
-    redoc_url="/redoc" if not settings.is_production else None,
-    openapi_url="/openapi.json" if not settings.is_production else None,
+    docs_url="/api/docs" if not settings.is_production else None,
+    redoc_url="/api/redoc" if not settings.is_production else None,
+    openapi_url="/api/openapi.json" if not settings.is_production else None,
     lifespan=lifespan,
 )
 
 
 # ==========================================
-# Middleware Configuration
+# Middleware Configuration (Order Matters!)
 # ==========================================
 
-# CORS Middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=settings.CORS_CREDENTIALS,
-    allow_methods=settings.CORS_METHODS,
-    allow_headers=settings.CORS_HEADERS,
-)
+# 1. Security Headers (first, affects all responses)
+app.add_middleware(SecurityHeadersMiddleware)
 
-# GZip Compression
+# 2. Request ID (for tracing)
+app.add_middleware(RequestIDMiddleware)
+
+# 3. CORS
+app = configure_cors(app)
+
+# 4. GZip Compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# Custom Middleware
+# 5. Rate Limiting (before authentication)
+if settings.RATE_LIMIT_ENABLED:
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=settings.RATE_LIMIT_PER_MINUTE,
+        burst_size=10
+    )
+
+# 6. Security Audit (log security events)
+app.add_middleware(SecurityAuditMiddleware)
+
+# 7. SQL Injection Protection (basic detection)
+app.add_middleware(SQLInjectionProtectionMiddleware)
+
+# 8. Custom Middleware
 app.add_middleware(TenantMiddleware)
 app.add_middleware(LoggingMiddleware)
 
@@ -128,16 +170,17 @@ app.add_middleware(LoggingMiddleware)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle validation errors with proper logging."""
-    logger.error(
+    logger.warning(
         "validation_error",
         path=request.url.path,
+        method=request.method,
         errors=exc.errors(),
     )
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
-            "detail": exc.errors(),
-            "body": exc.body if hasattr(exc, 'body') else None
+            "detail": "Validation error",
+            "errors": exc.errors(),
         },
     )
 
@@ -148,14 +191,35 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.exception(
         "unhandled_exception",
         path=request.url.path,
-        exception=str(exc),
+        method=request.method,
+        exception_type=type(exc).__name__,
+        exception_message=str(exc),
     )
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "detail": "Internal server error" if settings.is_production else str(exc)
-        },
+
+    # Send to Sentry
+    capture_exception(
+        exc,
+        extra={
+            "path": request.url.path,
+            "method": request.method,
+            "query_params": dict(request.query_params),
+        }
     )
+
+    # Return generic error in production
+    if settings.is_production:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Internal server error"}
+        )
+    else:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "detail": str(exc),
+                "type": type(exc).__name__,
+            }
+        )
 
 
 # ==========================================
@@ -169,30 +233,8 @@ async def root():
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "environment": settings.ENVIRONMENT,
-        "docs": "/docs" if not settings.is_production else "disabled",
-    }
-
-
-@app.get("/health", tags=["Health"])
-async def health_check():
-    """Health check endpoint for monitoring."""
-    return {
-        "status": "healthy",
-        "app": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-    }
-
-
-@app.get("/ready", tags=["Health"])
-async def readiness_check():
-    """Readiness check for Kubernetes/Docker health probes."""
-    # TODO: Add checks for database, redis, external services
-    return {
-        "status": "ready",
-        "checks": {
-            "database": "ok",
-            "redis": "ok",
-        }
+        "docs": "/api/docs" if not settings.is_production else "disabled",
+        "status": "operational",
     }
 
 
@@ -201,10 +243,19 @@ async def readiness_check():
 # ==========================================
 
 from app.api.v1.router import api_router
+from app.api.health import router as health_router
 
+# Include API routes
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
-logger.info("api_routers_registered", prefix=settings.API_V1_PREFIX)
+# Include health check routes (at root level)
+app.include_router(health_router, tags=["Health"])
+
+logger.info(
+    "api_routers_registered",
+    api_prefix=settings.API_V1_PREFIX,
+    health_endpoints=["/ health", "/readiness", "/liveness", "/metrics", "/status"]
+)
 
 
 if __name__ == "__main__":
@@ -216,4 +267,5 @@ if __name__ == "__main__":
         port=settings.API_PORT,
         reload=settings.DEBUG,
         log_level=settings.LOG_LEVEL.lower(),
+        access_log=not settings.is_production,  # Disable access log in production (we have our own)
     )
