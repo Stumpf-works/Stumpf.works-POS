@@ -167,6 +167,7 @@ async def test_category(db_session: AsyncSession, test_tenant: Tenant) -> Catego
     category = Category(
         tenant_id=test_tenant.slug,
         name="Test Category",
+        slug="test-category",
         description="A test category",
         color="#FF5733",
     )
