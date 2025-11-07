@@ -15,16 +15,11 @@ from app.core.database import get_db
 from app.models.product import Product, ProductCategory
 from app.models.user import User
 from app.schemas.base import MessageResponse
-from app.schemas.product import (
-    ProductCategoryCreate,
-    ProductCategoryResponse,
-    ProductCategoryUpdate,
-    ProductCreate,
-    ProductResponse,
-    ProductSearchParams,
-    ProductUpdate,
-    StockAdjustment,
-)
+from app.schemas.product import (ProductCategoryCreate,
+                                 ProductCategoryResponse,
+                                 ProductCategoryUpdate, ProductCreate,
+                                 ProductResponse, ProductSearchParams,
+                                 ProductUpdate, StockAdjustment)
 from app.utils.helpers import slugify
 
 logger = structlog.get_logger()
