@@ -25,6 +25,19 @@ const navItems: NavItem[] = [
   { path: '/admin/settings', label: 'Einstellungen', icon: '⚙️', requiredRole: ['admin', 'super_admin'] },
 ]
 
+const pluginItems: NavItem[] = [
+  { path: '/plugins/payment', label: 'Zahlungen', icon: '💳' },
+  { path: '/plugins/cash', label: 'Kasse', icon: '💵' },
+  { path: '/plugins/tables', label: 'Tische', icon: '🪑' },
+  { path: '/plugins/kitchen', label: 'Küche', icon: '👨‍🍳' },
+  { path: '/plugins/employee-time', label: 'Zeiterfassung', icon: '⏰' },
+  { path: '/plugins/inventory', label: 'Inventar', icon: '📦' },
+  { path: '/plugins/bakery', label: 'Bäckerei', icon: '🥖' },
+  { path: '/plugins/delivery', label: 'Lieferung', icon: '🚚' },
+  { path: '/plugins/loyalty', label: 'Treueprogramm', icon: '⭐' },
+  { path: '/plugins/analytics', label: 'Analytics', icon: '📊' },
+]
+
 const superAdminItems: NavItem[] = [
   { path: '/super-admin/plugin-licenses', label: 'Lizenzverwaltung', icon: '🔐', requiredRole: ['super_admin'] },
 ]
@@ -70,6 +83,26 @@ export default function AdminLayout() {
                     to={item.path}
                     className={`nav-item ${
                       location.pathname === item.path ? 'active' : ''
+                    }`}
+                  >
+                    <span className="nav-icon">{item.icon}</span>
+                    {sidebarOpen && <span className="nav-label">{item.label}</span>}
+                  </Link>
+                </li>
+              ))}
+          </ul>
+
+          {/* Plugins Section */}
+          {sidebarOpen && <div className="nav-divider">PLUGINS</div>}
+          <ul>
+            {pluginItems
+              .filter(canAccessItem)
+              .map((item) => (
+                <li key={item.path}>
+                  <Link
+                    to={item.path}
+                    className={`nav-item ${
+                      location.pathname.startsWith(item.path) ? 'active' : ''
                     }`}
                   >
                     <span className="nav-icon">{item.icon}</span>
