@@ -4,7 +4,9 @@ Pydantic schemas for authentication-related API requests/responses
 """
 
 from typing import Optional
+
 from pydantic import Field
+
 from app.schemas.base import BaseSchema
 
 

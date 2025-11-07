@@ -7,9 +7,10 @@ Includes request ID, duration, status code, etc.
 import time
 import uuid
 from typing import Callable
+
+import structlog
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-import structlog
 
 logger = structlog.get_logger()
 
@@ -20,9 +21,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     Adds request ID for tracing.
     """
 
-    async def dispatch(
-        self, request: Request, call_next: Callable
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process request and log details."""
 
         # Generate unique request ID

@@ -3,9 +3,12 @@ Tenant Model
 Represents a customer/organization using the POS system
 """
 
-from sqlalchemy import Column, String, Boolean, JSON, Enum as SQLEnum
-from sqlalchemy.orm import relationship
 import enum
+
+from sqlalchemy import JSON, Boolean, Column
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import String
+from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel
 
@@ -44,7 +47,9 @@ class Tenant(BaseModel):
     address_street = Column(String(255), nullable=True)
     address_city = Column(String(100), nullable=True)
     address_postal_code = Column(String(20), nullable=True)
-    address_country = Column(String(2), default="DE", nullable=False)  # ISO 3166-1 alpha-2
+    address_country = Column(
+        String(2), default="DE", nullable=False
+    )  # ISO 3166-1 alpha-2
 
     # Tax Information
     vat_id = Column(String(50), nullable=True)  # USt-IdNr
@@ -88,4 +93,7 @@ class Tenant(BaseModel):
     @property
     def can_access(self) -> bool:
         """Check if tenant can access the system."""
-        return self.is_active and self.status in [TenantStatus.ACTIVE, TenantStatus.TRIAL]
+        return self.is_active and self.status in [
+            TenantStatus.ACTIVE,
+            TenantStatus.TRIAL,
+        ]

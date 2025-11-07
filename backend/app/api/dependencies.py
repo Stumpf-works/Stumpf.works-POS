@@ -4,15 +4,16 @@ FastAPI dependencies for authentication, authorization, and database access
 """
 
 from typing import Optional
-from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import decode_token
-from app.models.user import User, UserRole
 from app.models.tenant import Tenant
+from app.models.user import User, UserRole
 
 # HTTP Bearer token authentication
 security = HTTPBearer()
@@ -79,10 +80,7 @@ async def get_current_user(
 
     # Get user from database
     result = await db.execute(
-        select(User).where(
-            User.id == int(user_id),
-            User.tenant_id == request_tenant_id
-        )
+        select(User).where(User.id == int(user_id), User.tenant_id == request_tenant_id)
     )
     user = result.scalar_one_or_none()
 
@@ -118,8 +116,7 @@ async def get_current_active_user(
     """
     if not current_user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Inactive user"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user"
         )
     return current_user
 
@@ -143,8 +140,7 @@ async def require_role(
     """
     if current_user.role not in required_roles:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions"
         )
     return current_user
 
@@ -166,8 +162,7 @@ def require_admin(
     """
     if not current_user.is_admin:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
         )
     return current_user
 
@@ -189,8 +184,7 @@ def require_cashier(
     """
     if not current_user.can_access_pos:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="POS access required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="POS access required"
         )
     return current_user
 
@@ -216,26 +210,21 @@ async def get_current_tenant(
 
     if not tenant_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No tenant context"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No tenant context"
         )
 
     # Get tenant from database (from public schema)
-    result = await db.execute(
-        select(Tenant).where(Tenant.slug == tenant_id)
-    )
+    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_id))
     tenant = result.scalar_one_or_none()
 
     if tenant is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tenant not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found"
         )
 
     if not tenant.can_access:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tenant access suspended"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Tenant access suspended"
         )
 
     return tenant

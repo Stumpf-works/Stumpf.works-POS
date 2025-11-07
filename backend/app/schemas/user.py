@@ -4,9 +4,11 @@ Pydantic schemas for user-related API requests/responses
 """
 
 from typing import Optional
+
 from pydantic import EmailStr, Field, field_validator
-from app.schemas.base import BaseSchema, BaseResponse
+
 from app.models.user import UserRole
+from app.schemas.base import BaseResponse, BaseSchema
 
 
 class UserBase(BaseSchema):

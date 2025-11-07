@@ -3,16 +3,13 @@ Database Configuration
 SQLAlchemy 2.0 setup with multi-tenant support
 """
 
-from typing import AsyncGenerator, Optional
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator, Optional
+
 from sqlalchemy import create_engine, event, text
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    create_async_engine,
-    async_sessionmaker,
-    AsyncEngine
-)
-from sqlalchemy.orm import declarative_base, Session, sessionmaker
+from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
+                                    async_sessionmaker, create_async_engine)
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
@@ -40,10 +37,7 @@ async_engine = create_async_engine(
 
 # Session factories
 SyncSessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=sync_engine,
-    class_=Session
+    autocommit=False, autoflush=False, bind=sync_engine, class_=Session
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -145,7 +139,7 @@ async def create_tenant_schema(schema_name: str) -> None:
                 "SELECT schema_name FROM information_schema.schemata "
                 "WHERE schema_name = :schema_name"
             ),
-            {"schema_name": schema_name}
+            {"schema_name": schema_name},
         )
         exists = result.fetchone()
 

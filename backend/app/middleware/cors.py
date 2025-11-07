@@ -4,6 +4,7 @@ Cross-Origin Resource Sharing settings for frontend-backend communication
 """
 
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 
 
@@ -34,10 +35,14 @@ def configure_cors(app):
         ]
     else:  # production
         # Production - only allow specific domains
-        allowed_origins = settings.ALLOWED_ORIGINS.split(",") if hasattr(settings, 'ALLOWED_ORIGINS') else [
-            "https://pos.stumpf.works",
-            "https://app.stumpf.works",
-        ]
+        allowed_origins = (
+            settings.ALLOWED_ORIGINS.split(",")
+            if hasattr(settings, "ALLOWED_ORIGINS")
+            else [
+                "https://pos.stumpf.works",
+                "https://app.stumpf.works",
+            ]
+        )
 
     app.add_middleware(
         CORSMiddleware,

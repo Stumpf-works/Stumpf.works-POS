@@ -3,13 +3,13 @@ Example Plugin
 Demonstrates how to create a plugin for Stumpf.works POS
 """
 
+import structlog
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-import structlog
 
-from app.plugins.base import BasePlugin, PluginMetadata, PluginHook
-from app.core.database import get_db
 from app.api.dependencies import get_current_user
+from app.core.database import get_db
+from app.plugins.base import BasePlugin, PluginHook, PluginMetadata
 
 logger = structlog.get_logger()
 

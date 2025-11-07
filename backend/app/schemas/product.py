@@ -4,14 +4,17 @@ Pydantic schemas for product-related API requests/responses
 """
 
 from typing import Optional
+
 from pydantic import Field
-from app.schemas.base import BaseSchema, BaseResponse
+
 from app.models.product import VATRate
+from app.schemas.base import BaseResponse, BaseSchema
 
 
 # Product Category Schemas
 class ProductCategoryBase(BaseSchema):
     """Base product category schema."""
+
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
     parent_id: Optional[int] = None
@@ -21,11 +24,13 @@ class ProductCategoryBase(BaseSchema):
 
 class ProductCategoryCreate(ProductCategoryBase):
     """Schema for creating a product category."""
+
     pass
 
 
 class ProductCategoryUpdate(BaseSchema):
     """Schema for updating a product category."""
+
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = None
     parent_id: Optional[int] = None
@@ -36,6 +41,7 @@ class ProductCategoryUpdate(BaseSchema):
 
 class ProductCategoryResponse(BaseResponse):
     """Schema for product category response."""
+
     name: str
     slug: str
     description: Optional[str]
@@ -49,6 +55,7 @@ class ProductCategoryResponse(BaseResponse):
 # Product Schemas
 class ProductBase(BaseSchema):
     """Base product schema."""
+
     name: str = Field(..., min_length=1, max_length=200)
     sku: Optional[str] = Field(None, max_length=100)
     barcode: Optional[str] = Field(None, max_length=100)
@@ -66,11 +73,13 @@ class ProductBase(BaseSchema):
 
 class ProductCreate(ProductBase):
     """Schema for creating a product."""
+
     pass
 
 
 class ProductUpdate(BaseSchema):
     """Schema for updating a product."""
+
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     sku: Optional[str] = Field(None, max_length=100)
     barcode: Optional[str] = Field(None, max_length=100)
@@ -89,6 +98,7 @@ class ProductUpdate(BaseSchema):
 
 class ProductResponse(BaseResponse):
     """Schema for product response."""
+
     name: str
     sku: Optional[str]
     barcode: Optional[str]
@@ -127,6 +137,7 @@ class ProductResponse(BaseResponse):
 
 class ProductSearchParams(BaseSchema):
     """Schema for product search parameters."""
+
     q: Optional[str] = None  # Search query
     category_id: Optional[int] = None
     barcode: Optional[str] = None
@@ -139,5 +150,6 @@ class ProductSearchParams(BaseSchema):
 
 class StockAdjustment(BaseSchema):
     """Schema for stock adjustment."""
+
     quantity: int  # Positive to add, negative to remove
     reason: Optional[str] = None

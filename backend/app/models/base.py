@@ -4,7 +4,8 @@ Includes common fields and mixins
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, DateTime, String
+
+from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.ext.declarative import declared_attr
 
 from app.core.database import Base
@@ -15,10 +16,7 @@ class TimestampMixin:
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
-        nullable=False
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
 

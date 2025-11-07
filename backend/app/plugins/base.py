@@ -4,8 +4,9 @@ Define the interface for plugins
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter
 
 
@@ -116,9 +117,9 @@ class PluginHook:
         Returns the modified data (if applicable).
         """
         if hook_name not in cls._hooks:
-            return kwargs.get('data')
+            return kwargs.get("data")
 
-        data = kwargs.get('data')
+        data = kwargs.get("data")
 
         for callback in cls._hooks[hook_name]:
             result = callback(*args, **kwargs)

@@ -5,24 +5,27 @@ Dashboard, user management, and system administration
 
 from datetime import datetime, timedelta
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
-from pydantic import BaseModel
-import structlog
 
-from app.core.database import get_db
-from app.models.user import User, UserRole
-from app.models.product import Product
-from app.models.transaction import Transaction, TransactionItem, TransactionStatus, PaymentMethod
-from app.models.tenant import Tenant
+import structlog
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.dependencies import get_current_user, require_admin
+from app.core.database import get_db
+from app.models.product import Product
+from app.models.tenant import Tenant
+from app.models.transaction import (PaymentMethod, Transaction,
+                                    TransactionItem, TransactionStatus)
+from app.models.user import User, UserRole
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
 # Dashboard endpoints
+
 
 class DashboardStats(BaseModel):
     today_sales: float
@@ -51,18 +54,19 @@ async def get_dashboard_stats(
 ):
     """Get dashboard statistics."""
     today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_start = datetime.now().replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    )
 
     # Today's sales
     today_result = await db.execute(
         select(
-            func.coalesce(func.sum(Transaction.total), 0),
-            func.count(Transaction.id)
+            func.coalesce(func.sum(Transaction.total), 0), func.count(Transaction.id)
         ).where(
             and_(
                 Transaction.tenant_id == current_user.tenant_id,
                 Transaction.completed_at >= today_start,
-                Transaction.status == TransactionStatus.COMPLETED
+                Transaction.status == TransactionStatus.COMPLETED,
             )
         )
     )
@@ -71,13 +75,12 @@ async def get_dashboard_stats(
     # Month's sales
     month_result = await db.execute(
         select(
-            func.coalesce(func.sum(Transaction.total), 0),
-            func.count(Transaction.id)
+            func.coalesce(func.sum(Transaction.total), 0), func.count(Transaction.id)
         ).where(
             and_(
                 Transaction.tenant_id == current_user.tenant_id,
                 Transaction.completed_at >= month_start,
-                Transaction.status == TransactionStatus.COMPLETED
+                Transaction.status == TransactionStatus.COMPLETED,
             )
         )
     )
@@ -86,10 +89,7 @@ async def get_dashboard_stats(
     # Active products
     active_products_result = await db.execute(
         select(func.count(Product.id)).where(
-            and_(
-                Product.tenant_id == current_user.tenant_id,
-                Product.is_active == True
-            )
+            and_(Product.tenant_id == current_user.tenant_id, Product.is_active == True)
         )
     )
     active_products = active_products_result.scalar()
@@ -100,7 +100,7 @@ async def get_dashboard_stats(
             and_(
                 Product.tenant_id == current_user.tenant_id,
                 Product.is_active == True,
-                Product.stock_quantity < 10
+                Product.stock_quantity < 10,
             )
         )
     )
@@ -112,7 +112,7 @@ async def get_dashboard_stats(
             and_(
                 Transaction.tenant_id == current_user.tenant_id,
                 Transaction.status == TransactionStatus.COMPLETED,
-                Transaction.is_tse_signed == False
+                Transaction.is_tse_signed == False,
             )
         )
     )
@@ -130,7 +130,9 @@ async def get_dashboard_stats(
     )
 
 
-@router.get("/dashboard/recent-transactions", response_model=List[RecentTransactionResponse])
+@router.get(
+    "/dashboard/recent-transactions", response_model=List[RecentTransactionResponse]
+)
 async def get_recent_transactions(
     limit: int = Query(10, le=50),
     current_user: User = Depends(get_current_user),
@@ -142,7 +144,7 @@ async def get_recent_transactions(
         .where(
             and_(
                 Transaction.tenant_id == current_user.tenant_id,
-                Transaction.status == TransactionStatus.COMPLETED
+                Transaction.status == TransactionStatus.COMPLETED,
             )
         )
         .order_by(Transaction.completed_at.desc())
@@ -164,6 +166,7 @@ async def get_recent_transactions(
 
 
 # User management endpoints
+
 
 class UserResponse(BaseModel):
     id: int
@@ -238,14 +241,13 @@ async def create_user(
         select(User).where(
             and_(
                 User.tenant_id == current_user.tenant_id,
-                User.username == user_data.username
+                User.username == user_data.username,
             )
         )
     )
     if result.scalar_one_or_none():
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already exists"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists"
         )
 
     # Create user
@@ -256,7 +258,9 @@ async def create_user(
         first_name=user_data.first_name,
         last_name=user_data.last_name,
         role=user_data.role,
-        password_hash=get_password_hash(user_data.password) if user_data.password else None,
+        password_hash=(
+            get_password_hash(user_data.password) if user_data.password else None
+        ),
         pin_hash=get_pin_hash(user_data.pin) if user_data.pin else None,
         is_active=True,
     )
@@ -295,18 +299,14 @@ async def update_user(
     """Update user (admin only)."""
     result = await db.execute(
         select(User).where(
-            and_(
-                User.id == user_id,
-                User.tenant_id == current_user.tenant_id
-            )
+            and_(User.id == user_id, User.tenant_id == current_user.tenant_id)
         )
     )
     user = result.scalar_one_or_none()
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
     # Update fields
@@ -353,23 +353,19 @@ async def delete_user(
     if user_id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete your own account"
+            detail="Cannot delete your own account",
         )
 
     result = await db.execute(
         select(User).where(
-            and_(
-                User.id == user_id,
-                User.tenant_id == current_user.tenant_id
-            )
+            and_(User.id == user_id, User.tenant_id == current_user.tenant_id)
         )
     )
     user = result.scalar_one_or_none()
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
     await db.delete(user)
@@ -383,6 +379,7 @@ async def delete_user(
 
 
 # Reports endpoints
+
 
 class SalesReport(BaseModel):
     total_sales: float
@@ -406,14 +403,13 @@ async def get_sales_report(
     # Total sales and transactions
     total_result = await db.execute(
         select(
-            func.coalesce(func.sum(Transaction.total), 0),
-            func.count(Transaction.id)
+            func.coalesce(func.sum(Transaction.total), 0), func.count(Transaction.id)
         ).where(
             and_(
                 Transaction.tenant_id == current_user.tenant_id,
                 Transaction.completed_at >= start_date,
                 Transaction.completed_at <= end_date,
-                Transaction.status == TransactionStatus.COMPLETED
+                Transaction.status == TransactionStatus.COMPLETED,
             )
         )
     )
@@ -422,16 +418,17 @@ async def get_sales_report(
     # Sales by payment method
     payment_result = await db.execute(
         select(
-            Transaction.payment_method,
-            func.coalesce(func.sum(Transaction.total), 0)
-        ).where(
+            Transaction.payment_method, func.coalesce(func.sum(Transaction.total), 0)
+        )
+        .where(
             and_(
                 Transaction.tenant_id == current_user.tenant_id,
                 Transaction.completed_at >= start_date,
                 Transaction.completed_at <= end_date,
-                Transaction.status == TransactionStatus.COMPLETED
+                Transaction.status == TransactionStatus.COMPLETED,
             )
-        ).group_by(Transaction.payment_method)
+        )
+        .group_by(Transaction.payment_method)
     )
     sales_by_payment = {
         PaymentMethod.CASH.value: 0,
@@ -444,24 +441,26 @@ async def get_sales_report(
     # Sales by day (simplified)
     day_result = await db.execute(
         select(
-            func.date(Transaction.completed_at).label('date'),
-            func.coalesce(func.sum(Transaction.total), 0).label('sales'),
-            func.count(Transaction.id).label('transactions')
-        ).where(
+            func.date(Transaction.completed_at).label("date"),
+            func.coalesce(func.sum(Transaction.total), 0).label("sales"),
+            func.count(Transaction.id).label("transactions"),
+        )
+        .where(
             and_(
                 Transaction.tenant_id == current_user.tenant_id,
                 Transaction.completed_at >= start_date,
                 Transaction.completed_at <= end_date,
-                Transaction.status == TransactionStatus.COMPLETED
+                Transaction.status == TransactionStatus.COMPLETED,
             )
-        ).group_by(func.date(Transaction.completed_at))
+        )
+        .group_by(func.date(Transaction.completed_at))
         .order_by(func.date(Transaction.completed_at))
     )
     sales_by_day = [
         {
-            'date': str(row.date),
-            'sales': float(row.sales),
-            'transactions': row.transactions
+            "date": str(row.date),
+            "sales": float(row.sales),
+            "transactions": row.transactions,
         }
         for row in day_result
     ]
@@ -471,26 +470,28 @@ async def get_sales_report(
         select(
             TransactionItem.product_id,
             TransactionItem.product_name,
-            func.sum(TransactionItem.quantity).label('quantity_sold'),
-            func.sum(TransactionItem.total).label('total_sales')
-        ).join(Transaction)
+            func.sum(TransactionItem.quantity).label("quantity_sold"),
+            func.sum(TransactionItem.total).label("total_sales"),
+        )
+        .join(Transaction)
         .where(
             and_(
                 Transaction.tenant_id == current_user.tenant_id,
                 Transaction.completed_at >= start_date,
                 Transaction.completed_at <= end_date,
-                Transaction.status == TransactionStatus.COMPLETED
+                Transaction.status == TransactionStatus.COMPLETED,
             )
-        ).group_by(TransactionItem.product_id, TransactionItem.product_name)
+        )
+        .group_by(TransactionItem.product_id, TransactionItem.product_name)
         .order_by(func.sum(TransactionItem.total).desc())
         .limit(10)
     )
     top_products = [
         {
-            'product_id': row.product_id,
-            'product_name': row.product_name,
-            'quantity_sold': int(row.quantity_sold),
-            'total_sales': float(row.total_sales)
+            "product_id": row.product_id,
+            "product_name": row.product_name,
+            "quantity_sold": int(row.quantity_sold),
+            "total_sales": float(row.total_sales),
         }
         for row in top_products_result
     ]
@@ -498,24 +499,26 @@ async def get_sales_report(
     # Sales by hour
     hour_result = await db.execute(
         select(
-            func.extract('hour', Transaction.completed_at).label('hour'),
-            func.coalesce(func.sum(Transaction.total), 0).label('sales'),
-            func.count(Transaction.id).label('transactions')
-        ).where(
+            func.extract("hour", Transaction.completed_at).label("hour"),
+            func.coalesce(func.sum(Transaction.total), 0).label("sales"),
+            func.count(Transaction.id).label("transactions"),
+        )
+        .where(
             and_(
                 Transaction.tenant_id == current_user.tenant_id,
                 Transaction.completed_at >= start_date,
                 Transaction.completed_at <= end_date,
-                Transaction.status == TransactionStatus.COMPLETED
+                Transaction.status == TransactionStatus.COMPLETED,
             )
-        ).group_by(func.extract('hour', Transaction.completed_at))
-        .order_by(func.extract('hour', Transaction.completed_at))
+        )
+        .group_by(func.extract("hour", Transaction.completed_at))
+        .order_by(func.extract("hour", Transaction.completed_at))
     )
     sales_by_hour = [
         {
-            'hour': int(row.hour),
-            'sales': float(row.sales),
-            'transactions': row.transactions
+            "hour": int(row.hour),
+            "sales": float(row.sales),
+            "transactions": row.transactions,
         }
         for row in hour_result
     ]
@@ -532,6 +535,7 @@ async def get_sales_report(
 
 
 # Settings endpoints
+
 
 class TenantSettingsResponse(BaseModel):
     name: str
@@ -562,8 +566,7 @@ async def get_tenant_settings(
 
     if not tenant:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tenant not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found"
         )
 
     return TenantSettingsResponse(
@@ -597,16 +600,24 @@ async def update_tenant_settings(
 
     if not tenant:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tenant not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found"
         )
 
     # Update allowed fields
     allowed_fields = {
-        'name', 'address_street', 'address_postal_code', 'address_city',
-        'address_country', 'tax_id', 'vat_id', 'sumup_enabled',
-        'sumup_merchant_code', 'tse_enabled', 'fiskaly_api_key',
-        'fiskaly_api_secret', 'fiskaly_tss_id'
+        "name",
+        "address_street",
+        "address_postal_code",
+        "address_city",
+        "address_country",
+        "tax_id",
+        "vat_id",
+        "sumup_enabled",
+        "sumup_merchant_code",
+        "tse_enabled",
+        "fiskaly_api_key",
+        "fiskaly_api_secret",
+        "fiskaly_tss_id",
     }
 
     for field, value in settings.items():

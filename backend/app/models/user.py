@@ -3,9 +3,12 @@ User Model
 Represents users with tenant-scoped access
 """
 
-from sqlalchemy import Column, String, Boolean, Enum as SQLEnum, ForeignKey, Integer, Table
-from sqlalchemy.orm import relationship
 import enum
+
+from sqlalchemy import Boolean, Column
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import ForeignKey, Integer, String, Table
+from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel, TenantMixin
 

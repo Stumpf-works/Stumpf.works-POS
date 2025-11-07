@@ -3,8 +3,9 @@ Fiskaly Cloud-TSE Adapter
 Handles TSE signature for transactions (KassenSichV compliance)
 """
 
+from typing import Any, Dict, Optional
+
 import httpx
-from typing import Optional, Dict, Any
 import structlog
 
 from app.core.config import settings
@@ -47,7 +48,7 @@ class FiskalyAdapter:
                 json={
                     "api_key": self.api_key,
                     "api_secret": self.api_secret,
-                }
+                },
             )
             response.raise_for_status()
             data = response.json()
@@ -60,9 +61,7 @@ class FiskalyAdapter:
             raise
 
     async def create_transaction(
-        self,
-        transaction_id: str,
-        transaction_data: Dict[str, Any]
+        self, transaction_id: str, transaction_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Create and sign a transaction with TSE.
@@ -90,7 +89,7 @@ class FiskalyAdapter:
                     "state": "FINISHED",
                     "client_id": transaction_data.get("client_id", "POS-1"),
                     "tx_data": transaction_data,
-                }
+                },
             )
             response.raise_for_status()
             data = response.json()
@@ -111,7 +110,9 @@ class FiskalyAdapter:
             }
 
         except Exception as e:
-            logger.exception("tse_signing_error", transaction_id=transaction_id, error=str(e))
+            logger.exception(
+                "tse_signing_error", transaction_id=transaction_id, error=str(e)
+            )
             raise
 
     async def export_tar(self, start_date: str, end_date: str) -> bytes:
@@ -134,11 +135,13 @@ class FiskalyAdapter:
                 params={
                     "start_date": start_date,
                     "end_date": end_date,
-                }
+                },
             )
             response.raise_for_status()
 
-            logger.info("tse_export_completed", start_date=start_date, end_date=end_date)
+            logger.info(
+                "tse_export_completed", start_date=start_date, end_date=end_date
+            )
             return response.content
 
         except Exception as e:

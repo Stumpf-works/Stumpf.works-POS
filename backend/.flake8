@@ -1,0 +1,33 @@
+[flake8]
+max-line-length = 100
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    alembic,
+    migrations,
+    .mypy_cache,
+    .pytest_cache,
+    build,
+    dist
+
+# Ignore specific errors
+ignore =
+    # F401: imported but unused (often false positives, models/imports for SQLAlchemy)
+    F401,
+    # E712: comparison to True should be 'if cond is True:' (SQLAlchemy filters)
+    E712,
+    # E402: module level import not at top (FastAPI router pattern)
+    E402,
+    # W503: line break before binary operator (conflicts with Black)
+    W503
+
+# Don't check these for certain errors
+per-file-ignores =
+    __init__.py:F401
+    */models/*.py:F401,E712
+    */api/v1/*.py:F401
+    */services/*.py:F401
+    app/main.py:E402

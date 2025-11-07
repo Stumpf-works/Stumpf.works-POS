@@ -4,6 +4,7 @@ Handles async operations like TSE signing, webhook processing, exports, etc.
 """
 
 from celery import Celery
+
 from app.core.config import settings
 
 # Create Celery app
@@ -15,7 +16,7 @@ celery_app = Celery(
         "app.services.tse.tasks",
         "app.services.payment.tasks",
         "app.services.export.tasks",
-    ]
+    ],
 )
 
 # Celery configuration

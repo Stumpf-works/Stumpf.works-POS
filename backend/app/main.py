@@ -4,29 +4,25 @@ FastAPI application with multi-tenant support, Cloud-TSE, and SumUp integration
 """
 
 from contextlib import asynccontextmanager
+
+import structlog
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-import structlog
 
 from app.core.config import settings
-from app.core.database import init_db, close_db
-from app.core.logging_config import configure_logging
-from app.core.error_tracking import configure_error_tracking, capture_exception
-
-# Import Middleware
-from app.middleware.tenant import TenantMiddleware
+from app.core.database import close_db, init_db
+from app.core.error_tracking import capture_exception, configure_error_tracking
+from app.core.logging_config import LoggingMiddleware, configure_logging
 from app.middleware.cors import configure_cors
 from app.middleware.rate_limit import RateLimitMiddleware, rate_limiter
-from app.middleware.security import (
-    SecurityHeadersMiddleware,
-    RequestIDMiddleware,
-    SecurityAuditMiddleware,
-    SQLInjectionProtectionMiddleware
-)
-from app.core.logging_config import LoggingMiddleware
-
+from app.middleware.security import (RequestIDMiddleware,
+                                     SecurityAuditMiddleware,
+                                     SecurityHeadersMiddleware,
+                                     SQLInjectionProtectionMiddleware)
+# Import Middleware
+from app.middleware.tenant import TenantMiddleware
 from app.plugins import plugin_registry
 
 # Configure structured logging
@@ -63,13 +59,16 @@ async def lifespan(app: FastAPI):
     # Start rate limiter cleanup task
     if settings.RATE_LIMIT_ENABLED:
         import asyncio
+
         asyncio.create_task(rate_limiter.cleanup_old_entries())
         logger.info("rate_limiter_enabled", per_minute=settings.RATE_LIMIT_PER_MINUTE)
 
     # Discover and load plugins
     logger.info("discovering_plugins")
     discovered_plugins = plugin_registry.discover_plugins()
-    logger.info("plugins_discovered", count=len(discovered_plugins), plugins=discovered_plugins)
+    logger.info(
+        "plugins_discovered", count=len(discovered_plugins), plugins=discovered_plugins
+    )
 
     # Load and enable plugins
     for plugin_name in discovered_plugins:
@@ -80,7 +79,9 @@ async def lifespan(app: FastAPI):
 
                 # Register plugin routes
                 if plugin.get_router():
-                    app.include_router(plugin.get_router(), prefix=settings.API_V1_PREFIX)
+                    app.include_router(
+                        plugin.get_router(), prefix=settings.API_V1_PREFIX
+                    )
                     logger.info("plugin_routes_registered", plugin=plugin_name)
         except Exception as e:
             logger.error("plugin_load_failed", plugin=plugin_name, error=str(e))
@@ -98,7 +99,7 @@ async def lifespan(app: FastAPI):
             "sumup_enabled": settings.SUMUP_ENABLED,
             "rate_limiting": settings.RATE_LIMIT_ENABLED,
             "sentry": bool(settings.SENTRY_DSN),
-        }
+        },
     )
 
     yield
@@ -149,7 +150,7 @@ if settings.RATE_LIMIT_ENABLED:
     app.add_middleware(
         RateLimitMiddleware,
         requests_per_minute=settings.RATE_LIMIT_PER_MINUTE,
-        burst_size=10
+        burst_size=10,
     )
 
 # 6. Security Audit (log security events)
@@ -166,6 +167,7 @@ app.add_middleware(LoggingMiddleware)
 # ==========================================
 # Exception Handlers
 # ==========================================
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -203,14 +205,14 @@ async def global_exception_handler(request: Request, exc: Exception):
             "path": request.url.path,
             "method": request.method,
             "query_params": dict(request.query_params),
-        }
+        },
     )
 
     # Return generic error in production
     if settings.is_production:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": "Internal server error"}
+            content={"detail": "Internal server error"},
         )
     else:
         return JSONResponse(
@@ -218,13 +220,14 @@ async def global_exception_handler(request: Request, exc: Exception):
             content={
                 "detail": str(exc),
                 "type": type(exc).__name__,
-            }
+            },
         )
 
 
 # ==========================================
 # Root Endpoints
 # ==========================================
+
 
 @app.get("/", tags=["Root"])
 async def root():
@@ -242,8 +245,8 @@ async def root():
 # API Routers
 # ==========================================
 
-from app.api.v1.router import api_router
 from app.api.health import router as health_router
+from app.api.v1.router import api_router
 
 # Include API routes
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
@@ -254,7 +257,7 @@ app.include_router(health_router, tags=["Health"])
 logger.info(
     "api_routers_registered",
     api_prefix=settings.API_V1_PREFIX,
-    health_endpoints=["/ health", "/readiness", "/liveness", "/metrics", "/status"]
+    health_endpoints=["/ health", "/readiness", "/liveness", "/metrics", "/status"],
 )
 
 

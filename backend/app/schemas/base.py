@@ -4,7 +4,9 @@ Base Pydantic schemas for API requests/responses
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel as PydanticBaseModel, ConfigDict
+
+from pydantic import BaseModel as PydanticBaseModel
+from pydantic import ConfigDict
 
 
 class BaseSchema(PydanticBaseModel):

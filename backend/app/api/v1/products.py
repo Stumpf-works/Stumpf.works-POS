@@ -4,26 +4,22 @@ CRUD operations for products and categories
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, func
-import structlog
 
+import structlog
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.dependencies import get_current_user, require_admin
 from app.core.database import get_db
 from app.models.product import Product, ProductCategory
 from app.models.user import User
-from app.schemas.product import (
-    ProductCreate,
-    ProductUpdate,
-    ProductResponse,
-    ProductSearchParams,
-    ProductCategoryCreate,
-    ProductCategoryUpdate,
-    ProductCategoryResponse,
-    StockAdjustment,
-)
 from app.schemas.base import MessageResponse
-from app.api.dependencies import get_current_user, require_admin
+from app.schemas.product import (ProductCategoryCreate,
+                                 ProductCategoryResponse,
+                                 ProductCategoryUpdate, ProductCreate,
+                                 ProductResponse, ProductSearchParams,
+                                 ProductUpdate, StockAdjustment)
 from app.utils.helpers import slugify
 
 logger = structlog.get_logger()
@@ -34,7 +30,12 @@ router = APIRouter(prefix="/products", tags=["Products"])
 # Product Categories
 # ==========================================
 
-@router.post("/categories", response_model=ProductCategoryResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/categories",
+    response_model=ProductCategoryResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_category(
     category_data: ProductCategoryCreate,
     current_user: User = Depends(require_admin),
@@ -49,13 +50,13 @@ async def create_category(
     result = await db.execute(
         select(ProductCategory).where(
             ProductCategory.slug == slug,
-            ProductCategory.tenant_id == current_user.tenant_id
+            ProductCategory.tenant_id == current_user.tenant_id,
         )
     )
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Category with slug '{slug}' already exists"
+            detail=f"Category with slug '{slug}' already exists",
         )
 
     # Create category
@@ -108,15 +109,14 @@ async def get_category(
     result = await db.execute(
         select(ProductCategory).where(
             ProductCategory.id == category_id,
-            ProductCategory.tenant_id == current_user.tenant_id
+            ProductCategory.tenant_id == current_user.tenant_id,
         )
     )
     category = result.scalar_one_or_none()
 
     if not category:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Category not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
         )
 
     return category
@@ -134,15 +134,14 @@ async def update_category(
     result = await db.execute(
         select(ProductCategory).where(
             ProductCategory.id == category_id,
-            ProductCategory.tenant_id == current_user.tenant_id
+            ProductCategory.tenant_id == current_user.tenant_id,
         )
     )
     category = result.scalar_one_or_none()
 
     if not category:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Category not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
         )
 
     # Update fields
@@ -174,15 +173,14 @@ async def delete_category(
     result = await db.execute(
         select(ProductCategory).where(
             ProductCategory.id == category_id,
-            ProductCategory.tenant_id == current_user.tenant_id
+            ProductCategory.tenant_id == current_user.tenant_id,
         )
     )
     category = result.scalar_one_or_none()
 
     if not category:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Category not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
         )
 
     await db.delete(category)
@@ -197,6 +195,7 @@ async def delete_category(
 # Products
 # ==========================================
 
+
 @router.post("", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_product(
     product_data: ProductCreate,
@@ -207,9 +206,7 @@ async def create_product(
 
     # Check if SKU or barcode already exists
     if product_data.sku or product_data.barcode:
-        query = select(Product).where(
-            Product.tenant_id == current_user.tenant_id
-        )
+        query = select(Product).where(Product.tenant_id == current_user.tenant_id)
 
         conditions = []
         if product_data.sku:
@@ -223,7 +220,7 @@ async def create_product(
         if result.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Product with this SKU or barcode already exists"
+                detail="Product with this SKU or barcode already exists",
             )
 
     # Create product
@@ -256,9 +253,7 @@ async def list_products(
 ):
     """List products with search and filters."""
 
-    query = select(Product).where(
-        Product.tenant_id == current_user.tenant_id
-    )
+    query = select(Product).where(Product.tenant_id == current_user.tenant_id)
 
     # Filters
     if q:
@@ -307,16 +302,14 @@ async def get_product(
 
     result = await db.execute(
         select(Product).where(
-            Product.id == product_id,
-            Product.tenant_id == current_user.tenant_id
+            Product.id == product_id, Product.tenant_id == current_user.tenant_id
         )
     )
     product = result.scalar_one_or_none()
 
     if not product:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
 
     return product
@@ -333,16 +326,14 @@ async def update_product(
 
     result = await db.execute(
         select(Product).where(
-            Product.id == product_id,
-            Product.tenant_id == current_user.tenant_id
+            Product.id == product_id, Product.tenant_id == current_user.tenant_id
         )
     )
     product = result.scalar_one_or_none()
 
     if not product:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
 
     # Update fields
@@ -369,16 +360,14 @@ async def delete_product(
 
     result = await db.execute(
         select(Product).where(
-            Product.id == product_id,
-            Product.tenant_id == current_user.tenant_id
+            Product.id == product_id, Product.tenant_id == current_user.tenant_id
         )
     )
     product = result.scalar_one_or_none()
 
     if not product:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
 
     await db.delete(product)
@@ -400,22 +389,20 @@ async def adjust_stock(
 
     result = await db.execute(
         select(Product).where(
-            Product.id == product_id,
-            Product.tenant_id == current_user.tenant_id
+            Product.id == product_id, Product.tenant_id == current_user.tenant_id
         )
     )
     product = result.scalar_one_or_none()
 
     if not product:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
 
     if not product.track_inventory:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Product does not track inventory"
+            detail="Product does not track inventory",
         )
 
     # Adjust stock
@@ -424,7 +411,7 @@ async def adjust_stock(
     if new_quantity < 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Stock quantity cannot be negative"
+            detail="Stock quantity cannot be negative",
         )
 
     product.stock_quantity = new_quantity
@@ -437,7 +424,7 @@ async def adjust_stock(
         product_id=product.id,
         adjustment=adjustment.quantity,
         new_quantity=new_quantity,
-        reason=adjustment.reason
+        reason=adjustment.reason,
     )
 
     return product

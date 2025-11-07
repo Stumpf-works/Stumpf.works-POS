@@ -4,8 +4,9 @@ Adds security-related HTTP headers to all responses
 """
 
 from typing import Callable
-from fastapi import Request, Response
+
 import structlog
+from fastapi import Request, Response
 
 logger = structlog.get_logger()
 
@@ -112,8 +113,7 @@ class SecurityAuditMiddleware:
     async def __call__(self, request: Request, call_next: Callable):
         # Check if this is a sensitive endpoint
         is_sensitive = any(
-            request.url.path.startswith(path)
-            for path in self.sensitive_paths
+            request.url.path.startswith(path) for path in self.sensitive_paths
         )
 
         if is_sensitive:
