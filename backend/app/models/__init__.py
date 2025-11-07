@@ -7,12 +7,8 @@ from app.models.base import BaseModel, TenantMixin, TimestampMixin
 from app.models.plugin_license import PluginLicense
 from app.models.product import Product, ProductCategory, VATRate
 from app.models.tenant import Tenant, TenantStatus
-from app.models.transaction import (
-    PaymentMethod,
-    Transaction,
-    TransactionItem,
-    TransactionStatus,
-)
+from app.models.transaction import (PaymentMethod, Transaction,
+                                    TransactionItem, TransactionStatus)
 from app.models.user import User, UserRole
 
 __all__ = [

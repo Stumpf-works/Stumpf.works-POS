@@ -17,13 +17,10 @@ from app.core.error_tracking import capture_exception, configure_error_tracking
 from app.core.logging_config import LoggingMiddleware, configure_logging
 from app.middleware.cors import configure_cors
 from app.middleware.rate_limit import RateLimitMiddleware, rate_limiter
-from app.middleware.security import (
-    RequestIDMiddleware,
-    SecurityAuditMiddleware,
-    SecurityHeadersMiddleware,
-    SQLInjectionProtectionMiddleware,
-)
-
+from app.middleware.security import (RequestIDMiddleware,
+                                     SecurityAuditMiddleware,
+                                     SecurityHeadersMiddleware,
+                                     SQLInjectionProtectionMiddleware)
 # Import Middleware
 from app.middleware.tenant import TenantMiddleware
 from app.plugins import plugin_registry

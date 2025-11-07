@@ -10,13 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user
 from app.core.database import get_db
-from app.core.security import (
-    create_token_pair,
-    decode_token,
-    get_password_hash,
-    verify_password,
-    verify_token_type,
-)
+from app.core.security import (create_token_pair, decode_token,
+                               get_password_hash, verify_password,
+                               verify_token_type)
 from app.models.user import User
 from app.schemas.auth import RefreshTokenRequest, Token
 from app.schemas.user import UserCreate, UserLogin, UserPINLogin, UserResponse
