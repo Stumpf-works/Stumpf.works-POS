@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from '@/stores/authStore'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // Pages
 import LoginPage from '@/pages/LoginPage'
@@ -19,6 +20,20 @@ import SettingsPage from '@/pages/admin/SettingsPage'
 // Super Admin Pages
 import PluginLicensesPage from '@/pages/super-admin/PluginLicensesPage'
 
+// Plugin Routes
+import { PluginRoutes } from '@/routes/pluginRoutes'
+
+// React Query Client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+})
+
 function App() {
   const { isAuthenticated, user } = useAuthStore()
 
@@ -26,7 +41,7 @@ function App() {
   const isSuperAdmin = user?.role === 'super_admin'
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<LoginPage />} />
@@ -66,6 +81,14 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 
+        {/* Plugin routes */}
+        <Route
+          path="/plugins/*"
+          element={
+            isAuthenticated ? <PluginRoutes /> : <Navigate to="/login" />
+          }
+        />
+
         {/* Super Admin routes */}
         <Route
           path="/super-admin"
@@ -99,7 +122,7 @@ function App() {
           },
         }}
       />
-    </>
+    </QueryClientProvider>
   )
 }
 
