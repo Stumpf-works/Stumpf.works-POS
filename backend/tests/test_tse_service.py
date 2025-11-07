@@ -4,6 +4,7 @@ Tests for TSE Service
 
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.tse.fiskaly_adapter import FiskalyAdapter
