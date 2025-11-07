@@ -5,8 +5,16 @@ Registers all v1 API endpoints
 
 from fastapi import APIRouter
 
-from app.api.v1 import (admin, auth, exports, plugins, products, super_admin,
-                        transactions, webhooks)
+from app.api.v1 import (
+    admin,
+    auth,
+    exports,
+    plugins,
+    products,
+    super_admin,
+    transactions,
+    webhooks,
+)
 
 # Create main API router
 api_router = APIRouter()

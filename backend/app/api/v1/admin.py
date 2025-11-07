@@ -16,8 +16,12 @@ from app.api.dependencies import get_current_user, require_admin
 from app.core.database import get_db
 from app.models.product import Product
 from app.models.tenant import Tenant
-from app.models.transaction import (PaymentMethod, Transaction,
-                                    TransactionItem, TransactionStatus)
+from app.models.transaction import (
+    PaymentMethod,
+    Transaction,
+    TransactionItem,
+    TransactionStatus,
+)
 from app.models.user import User, UserRole
 
 logger = structlog.get_logger()
