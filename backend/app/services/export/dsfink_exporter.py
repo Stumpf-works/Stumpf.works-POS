@@ -15,8 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.models.product import Product
 from app.models.tenant import Tenant
-from app.models.transaction import (Transaction, TransactionItem,
-                                    TransactionStatus)
+from app.models.transaction import Transaction, TransactionItem, TransactionStatus
 from app.models.user import User
 
 logger = structlog.get_logger()
