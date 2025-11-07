@@ -3,9 +3,12 @@ Product Models
 Products, categories, and inventory management
 """
 
-from sqlalchemy import Column, String, Float, Integer, Boolean, ForeignKey, Enum as SQLEnum, Text
-from sqlalchemy.orm import relationship
 import enum
+
+from sqlalchemy import Boolean, Column
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel, TenantMixin
 
@@ -34,7 +37,9 @@ class ProductCategory(BaseModel, TenantMixin):
     is_active = Column(Boolean, default=True, nullable=False)
 
     # Relationships
-    parent = relationship("ProductCategory", remote_side="ProductCategory.id", backref="subcategories")
+    parent = relationship(
+        "ProductCategory", remote_side="ProductCategory.id", backref="subcategories"
+    )
     # products = relationship("Product", back_populates="category")
 
     def __repr__(self) -> str:

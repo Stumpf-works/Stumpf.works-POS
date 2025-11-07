@@ -3,16 +3,17 @@ Health Check Endpoints
 Provides health, readiness, and liveness checks for monitoring
 """
 
-from fastapi import APIRouter, Depends, status
-from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from datetime import datetime
+
 import httpx
 import structlog
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
 from app.core.config import settings
+from app.core.database import get_db
 
 logger = structlog.get_logger()
 router = APIRouter(tags=["Health"])
@@ -49,7 +50,7 @@ async def readiness_check(db: AsyncSession = Depends(get_db)):
         "database": False,
         "redis": False,
         "fiskaly": None,  # Optional
-        "sumup": None,    # Optional
+        "sumup": None,  # Optional
     }
     overall_status = "ready"
     status_code = status.HTTP_200_OK
@@ -67,6 +68,7 @@ async def readiness_check(db: AsyncSession = Depends(get_db)):
     # Check Redis
     try:
         import redis.asyncio as redis
+
         redis_client = redis.from_url(settings.REDIS_URL)
         await redis_client.ping()
         checks["redis"] = True
@@ -101,10 +103,7 @@ async def readiness_check(db: AsyncSession = Depends(get_db)):
         "checks": checks,
     }
 
-    return JSONResponse(
-        status_code=status_code,
-        content=response_data
-    )
+    return JSONResponse(status_code=status_code, content=response_data)
 
 
 @router.get("/liveness", status_code=status.HTTP_200_OK)
@@ -140,19 +139,27 @@ async def metrics_endpoint(db: AsyncSession = Depends(get_db)):
         metrics["active_tenants"] = result.scalar()
 
         # Count total transactions (last 24h)
-        result = await db.execute(text("""
+        result = await db.execute(
+            text(
+                """
             SELECT COUNT(*)
             FROM public.transactions
             WHERE completed_at >= NOW() - INTERVAL '24 hours'
-        """))
+        """
+            )
+        )
         metrics["transactions_24h"] = result.scalar()
 
         # Count pending TSE signatures
-        result = await db.execute(text("""
+        result = await db.execute(
+            text(
+                """
             SELECT COUNT(*)
             FROM public.transactions
             WHERE status = 'completed' AND is_tse_signed = false
-        """))
+        """
+            )
+        )
         metrics["pending_tse_signatures"] = result.scalar()
 
     except Exception as e:
@@ -168,8 +175,9 @@ async def detailed_status(db: AsyncSession = Depends(get_db)):
     Detailed status endpoint with system information.
     For operational dashboards and debugging.
     """
-    import psutil
     import platform
+
+    import psutil
 
     status_info = {
         "timestamp": datetime.utcnow().isoformat(),
@@ -182,7 +190,7 @@ async def detailed_status(db: AsyncSession = Depends(get_db)):
             "cpu_count": psutil.cpu_count(),
             "cpu_percent": psutil.cpu_percent(interval=1),
             "memory_percent": psutil.virtual_memory().percent,
-            "disk_percent": psutil.disk_usage('/').percent,
+            "disk_percent": psutil.disk_usage("/").percent,
         },
         "database": {
             "connected": False,
@@ -193,7 +201,7 @@ async def detailed_status(db: AsyncSession = Depends(get_db)):
             "sumup_enabled": settings.SUMUP_ENABLED,
             "multi_tenant": True,
             "offline_mode": True,
-        }
+        },
     }
 
     # Check database

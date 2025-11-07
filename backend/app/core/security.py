@@ -4,7 +4,8 @@ JWT token generation, password hashing, etc.
 """
 
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
@@ -42,8 +43,7 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(
-    data: Dict[str, Any],
-    expires_delta: Optional[timedelta] = None
+    data: Dict[str, Any], expires_delta: Optional[timedelta] = None
 ) -> str:
     """
     Create a JWT access token.
@@ -66,17 +66,14 @@ def create_access_token(
 
     to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
 
     return encoded_jwt
 
 
 def create_refresh_token(
-    data: Dict[str, Any],
-    expires_delta: Optional[timedelta] = None
+    data: Dict[str, Any], expires_delta: Optional[timedelta] = None
 ) -> str:
     """
     Create a JWT refresh token.
@@ -93,15 +90,11 @@ def create_refresh_token(
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
-            days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-        )
+        expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
     to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
 
     return encoded_jwt
@@ -119,9 +112,7 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
     """
     try:
         payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         return payload
     except JWTError:
@@ -158,11 +149,7 @@ def create_token_pair(user_id: int, tenant_id: str, **extra_claims) -> Dict[str,
     Returns:
         Dictionary with 'access_token' and 'refresh_token'
     """
-    claims = {
-        "sub": str(user_id),
-        "tenant_id": tenant_id,
-        **extra_claims
-    }
+    claims = {"sub": str(user_id), "tenant_id": tenant_id, **extra_claims}
 
     access_token = create_access_token(claims)
     refresh_token = create_refresh_token(claims)
@@ -170,5 +157,5 @@ def create_token_pair(user_id: int, tenant_id: str, **extra_claims) -> Dict[str,
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
     }

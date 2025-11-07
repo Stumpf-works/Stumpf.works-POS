@@ -4,11 +4,11 @@ Sentry integration for production error monitoring
 """
 
 import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
-from sentry_sdk.integrations.redis import RedisIntegration
-from sentry_sdk.integrations.celery import CeleryIntegration
 import structlog
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
 from app.core.config import settings
 
@@ -22,10 +22,7 @@ def configure_error_tracking():
     """
 
     if not settings.SENTRY_DSN:
-        logger.info(
-            "sentry_disabled",
-            reason="SENTRY_DSN not configured"
-        )
+        logger.info("sentry_disabled", reason="SENTRY_DSN not configured")
         return
 
     try:
@@ -33,7 +30,6 @@ def configure_error_tracking():
             dsn=settings.SENTRY_DSN,
             environment=settings.SENTRY_ENVIRONMENT or settings.ENVIRONMENT,
             traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
-
             # Integrations
             integrations=[
                 FastApiIntegration(transaction_style="endpoint"),
@@ -41,19 +37,14 @@ def configure_error_tracking():
                 RedisIntegration(),
                 CeleryIntegration(),
             ],
-
             # Send default PII (Personally Identifiable Information)
             send_default_pii=False,  # Don't send user data by default
-
             # Performance monitoring
             enable_tracing=True,
-
             # Release tracking
             release=f"stumpf-pos@{settings.APP_VERSION}",
-
             # Before send hook to filter/modify events
             before_send=before_send_hook,
-
             # Before breadcrumb hook
             before_breadcrumb=before_breadcrumb_hook,
         )
@@ -65,11 +56,7 @@ def configure_error_tracking():
         )
 
     except Exception as e:
-        logger.error(
-            "sentry_init_failed",
-            error=str(e),
-            exc_info=True
-        )
+        logger.error("sentry_init_failed", error=str(e), exc_info=True)
 
 
 def before_send_hook(event, hint):
@@ -139,7 +126,7 @@ def capture_exception(exception: Exception, **kwargs):
             "exception_occurred",
             error=str(exception),
             error_type=type(exception).__name__,
-            **kwargs
+            **kwargs,
         )
         return
 
@@ -147,11 +134,13 @@ def capture_exception(exception: Exception, **kwargs):
         # Add user context
         if "user" in kwargs:
             user = kwargs.pop("user")
-            scope.set_user({
-                "id": user.get("id"),
-                "username": user.get("username"),
-                "email": user.get("email"),
-            })
+            scope.set_user(
+                {
+                    "id": user.get("id"),
+                    "username": user.get("username"),
+                    "email": user.get("email"),
+                }
+            )
 
         # Add tags
         if "tags" in kwargs:
@@ -198,7 +187,9 @@ def capture_message(message: str, level: str = "info", **kwargs):
         sentry_sdk.capture_message(message, level=level)
 
 
-def add_breadcrumb(message: str, category: str = "default", level: str = "info", **data):
+def add_breadcrumb(
+    message: str, category: str = "default", level: str = "info", **data
+):
     """
     Add a breadcrumb to the current scope.
     Breadcrumbs are shown in Sentry along with the error for context.
@@ -236,12 +227,7 @@ def set_user_context(user_id: int, username: str = None, email: str = None, **kw
     if not settings.SENTRY_DSN:
         return
 
-    user_data = {
-        "id": user_id,
-        "username": username,
-        "email": email,
-        **kwargs
-    }
+    user_data = {"id": user_id, "username": username, "email": email, **kwargs}
 
     # Remove None values
     user_data = {k: v for k, v in user_data.items() if v is not None}
@@ -278,10 +264,7 @@ class SentryTransaction:
 
     def __enter__(self):
         if settings.SENTRY_DSN:
-            self.transaction = sentry_sdk.start_transaction(
-                name=self.name,
-                op=self.op
-            )
+            self.transaction = sentry_sdk.start_transaction(name=self.name, op=self.op)
             self.transaction.__enter__()
         return self
 

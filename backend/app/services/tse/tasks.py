@@ -3,15 +3,15 @@ Celery Tasks for TSE Operations
 Asynchronous TSE signature processing
 """
 
+import structlog
 from celery import shared_task
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-import structlog
 
-from app.core.database import sync_engine, SyncSessionLocal
 from app.core.config import settings
-from app.models.transaction import Transaction, TransactionStatus
+from app.core.database import SyncSessionLocal, sync_engine
 from app.models.tenant import Tenant
+from app.models.transaction import Transaction, TransactionStatus
 from app.services.tse.fiskaly_adapter import FiskalyAdapter
 
 logger = structlog.get_logger()
@@ -42,9 +42,9 @@ def sign_transaction_async(self, transaction_id: int, tenant_id: str):
         db.execute(f'SET search_path TO "{tenant_id}", public')
 
         # Get transaction
-        transaction = db.query(Transaction).filter(
-            Transaction.id == transaction_id
-        ).first()
+        transaction = (
+            db.query(Transaction).filter(Transaction.id == transaction_id).first()
+        )
 
         if not transaction:
             logger.error("transaction_not_found", transaction_id=transaction_id)
@@ -73,11 +73,7 @@ def sign_transaction_async(self, transaction_id: int, tenant_id: str):
             return {"success": False, "error": "Fiskaly configuration missing"}
 
         # Initialize Fiskaly adapter
-        fiskaly = FiskalyAdapter(
-            api_key=api_key,
-            api_secret=api_secret,
-            tss_id=tss_id
-        )
+        fiskaly = FiskalyAdapter(api_key=api_key, api_secret=api_secret, tss_id=tss_id)
 
         # Prepare transaction data for TSE
         transaction_data = {
@@ -98,10 +94,11 @@ def sign_transaction_async(self, transaction_id: int, tenant_id: str):
 
         # Sign transaction with TSE
         import asyncio
+
         signature_data = asyncio.run(
             fiskaly.create_transaction(
                 transaction_id=transaction.receipt_number,
-                transaction_data=transaction_data
+                transaction_data=transaction_data,
             )
         )
 
@@ -172,10 +169,15 @@ def sync_pending_signatures():
             db.execute(f'SET search_path TO "{tenant.schema_name}", public')
 
             # Get unsigned transactions
-            unsigned_transactions = db.query(Transaction).filter(
-                Transaction.status == TransactionStatus.COMPLETED,
-                Transaction.is_tse_signed == False
-            ).limit(10).all()  # Process max 10 per tenant per run
+            unsigned_transactions = (
+                db.query(Transaction)
+                .filter(
+                    Transaction.status == TransactionStatus.COMPLETED,
+                    Transaction.is_tse_signed == False,
+                )
+                .limit(10)
+                .all()
+            )  # Process max 10 per tenant per run
 
             for transaction in unsigned_transactions:
                 # Trigger signing task

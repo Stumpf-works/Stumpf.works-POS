@@ -6,15 +6,15 @@ Uses structlog for structured, JSON-formatted logging
 import logging
 import sys
 from typing import Any
+
 import structlog
 from structlog.types import EventDict, WrappedLogger
+
 from app.core.config import settings
 
 
 def add_app_context(
-    logger: WrappedLogger,
-    method_name: str,
-    event_dict: EventDict
+    logger: WrappedLogger, method_name: str, event_dict: EventDict
 ) -> EventDict:
     """
     Add application context to all log messages.
@@ -25,9 +25,7 @@ def add_app_context(
 
 
 def censor_sensitive_data(
-    logger: WrappedLogger,
-    method_name: str,
-    event_dict: EventDict
+    logger: WrappedLogger, method_name: str, event_dict: EventDict
 ) -> EventDict:
     """
     Censor sensitive data from logs.
@@ -89,14 +87,12 @@ def configure_logging():
 
     if settings.ENVIRONMENT == "development":
         # Pretty console output for development
-        processors = shared_processors + [
-            structlog.dev.ConsoleRenderer()
-        ]
+        processors = shared_processors + [structlog.dev.ConsoleRenderer()]
     else:
         # JSON output for production (easier to parse)
         processors = shared_processors + [
             structlog.processors.format_exc_info,
-            structlog.processors.JSONRenderer()
+            structlog.processors.JSONRenderer(),
         ]
 
     structlog.configure(
@@ -118,6 +114,7 @@ class LoggingMiddleware:
 
     async def __call__(self, request, call_next):
         import time
+
         from fastapi import Request
 
         logger = structlog.get_logger()
@@ -189,6 +186,7 @@ class LoggingMiddleware:
 
 # Helper functions for application code
 
+
 def log_business_event(event_name: str, **kwargs):
     """
     Log a business event (e.g., transaction created, user registered).
@@ -207,12 +205,7 @@ def log_security_event(event_name: str, severity: str = "info", **kwargs):
     log_method("security_event", event=event_name, **kwargs)
 
 
-def log_integration_event(
-    integration: str,
-    event_name: str,
-    success: bool,
-    **kwargs
-):
+def log_integration_event(integration: str, event_name: str, success: bool, **kwargs):
     """
     Log an external integration event (e.g., Fiskaly API call).
     """
@@ -224,7 +217,7 @@ def log_integration_event(
             integration=integration,
             event=event_name,
             success=True,
-            **kwargs
+            **kwargs,
         )
     else:
         logger.error(
@@ -232,5 +225,5 @@ def log_integration_event(
             integration=integration,
             event=event_name,
             success=False,
-            **kwargs
+            **kwargs,
         )

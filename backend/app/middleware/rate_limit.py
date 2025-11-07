@@ -3,13 +3,14 @@ Rate Limiting Middleware
 Prevents API abuse by limiting requests per time window
 """
 
-from typing import Callable
-from fastapi import Request, Response, HTTPException, status
-from fastapi.responses import JSONResponse
-from datetime import datetime, timedelta
 import asyncio
 from collections import defaultdict
+from datetime import datetime, timedelta
+from typing import Callable
+
 import structlog
+from fastapi import HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 
 logger = structlog.get_logger()
 
@@ -21,17 +22,11 @@ class RateLimiter:
 
     def __init__(self):
         # Store: {identifier: {"tokens": int, "last_update": datetime}}
-        self.buckets = defaultdict(lambda: {
-            "tokens": 0,
-            "last_update": datetime.now()
-        })
+        self.buckets = defaultdict(lambda: {"tokens": 0, "last_update": datetime.now()})
         self.cleanup_task = None
 
     def get_tokens(
-        self,
-        identifier: str,
-        max_tokens: int,
-        refill_rate: float
+        self, identifier: str, max_tokens: int, refill_rate: float
     ) -> tuple[bool, int]:
         """
         Check if request is allowed and return remaining tokens.
@@ -50,8 +45,7 @@ class RateLimiter:
         # Calculate token refill
         time_passed = (now - bucket["last_update"]).total_seconds()
         bucket["tokens"] = min(
-            max_tokens,
-            bucket["tokens"] + (time_passed * refill_rate)
+            max_tokens, bucket["tokens"] + (time_passed * refill_rate)
         )
         bucket["last_update"] = now
 
@@ -89,12 +83,7 @@ class RateLimitMiddleware:
     Middleware for rate limiting requests.
     """
 
-    def __init__(
-        self,
-        app,
-        requests_per_minute: int = 60,
-        burst_size: int = 10
-    ):
+    def __init__(self, app, requests_per_minute: int = 60, burst_size: int = 10):
         self.app = app
         self.requests_per_minute = requests_per_minute
         self.burst_size = burst_size
@@ -110,28 +99,24 @@ class RateLimitMiddleware:
 
         # Check rate limit
         allowed, remaining = rate_limiter.get_tokens(
-            identifier,
-            max_tokens=self.burst_size,
-            refill_rate=self.refill_rate
+            identifier, max_tokens=self.burst_size, refill_rate=self.refill_rate
         )
 
         if not allowed:
             logger.warning(
-                "rate_limit_exceeded",
-                identifier=identifier,
-                path=request.url.path
+                "rate_limit_exceeded", identifier=identifier, path=request.url.path
             )
             return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 content={
                     "detail": "Rate limit exceeded. Please try again later.",
-                    "retry_after": 60
+                    "retry_after": 60,
                 },
                 headers={
                     "Retry-After": "60",
                     "X-RateLimit-Limit": str(self.requests_per_minute),
                     "X-RateLimit-Remaining": "0",
-                }
+                },
             )
 
         # Process request
@@ -170,17 +155,13 @@ class EndpointRateLimits:
         # Aggressive rate limits for auth endpoints
         "/api/v1/auth/login": {"requests_per_minute": 5, "burst_size": 3},
         "/api/v1/auth/register": {"requests_per_minute": 3, "burst_size": 2},
-
         # Moderate limits for write operations
         "/api/v1/transactions": {"requests_per_minute": 30, "burst_size": 10},
         "/api/v1/products": {"requests_per_minute": 60, "burst_size": 20},
-
         # Generous limits for read operations
         "/api/v1/products/": {"requests_per_minute": 120, "burst_size": 30},
-
         # Admin endpoints
         "/api/v1/admin": {"requests_per_minute": 60, "burst_size": 20},
-
         # Export endpoints (expensive operations)
         "/api/v1/exports": {"requests_per_minute": 10, "burst_size": 2},
     }

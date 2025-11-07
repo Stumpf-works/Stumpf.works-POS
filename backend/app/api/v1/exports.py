@@ -4,14 +4,15 @@ GoBD/DSFinV-K compliant data exports
 """
 
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+
+import structlog
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
-import structlog
 
+from app.api.dependencies import get_current_user, require_admin
 from app.core.database import get_sync_db
 from app.models.user import User
-from app.api.dependencies import get_current_user, require_admin
 from app.services.export.dsfink_exporter import DSFinVKExporter
 
 logger = structlog.get_logger()
@@ -44,7 +45,7 @@ async def export_dsfink(
     if start_date >= end_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Start date must be before end date"
+            detail="Start date must be before end date",
         )
 
     # Limit export range (max 1 year)
@@ -52,7 +53,7 @@ async def export_dsfink(
     if (end_date - start_date) > max_range:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Export range cannot exceed 1 year"
+            detail="Export range cannot exceed 1 year",
         )
 
     logger.info(
@@ -65,19 +66,16 @@ async def export_dsfink(
 
     try:
         # Create exporter
-        exporter = DSFinVKExporter(
-            tenant_id=current_user.tenant_id,
-            db=db
-        )
+        exporter = DSFinVKExporter(tenant_id=current_user.tenant_id, db=db)
 
         # Generate export
-        export_data = exporter.export(
-            start_date=start_date,
-            end_date=end_date
-        )
+        export_data = exporter.export(start_date=start_date, end_date=end_date)
 
         # Generate filename
-        filename = f"dsfink_export_{current_user.tenant_id}_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.tar.gz"
+        filename = (
+            f"dsfink_export_{current_user.tenant_id}_"
+            f"{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.tar.gz"
+        )
 
         logger.info(
             "dsfink_export_completed",
@@ -90,9 +88,7 @@ async def export_dsfink(
         return Response(
             content=export_data,
             media_type="application/gzip",
-            headers={
-                "Content-Disposition": f"attachment; filename={filename}"
-            }
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
 
     except Exception as e:
@@ -103,7 +99,7 @@ async def export_dsfink(
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Export failed: {str(e)}"
+            detail=f"Export failed: {str(e)}",
         )
 
 

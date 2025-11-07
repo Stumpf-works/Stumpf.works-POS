@@ -3,29 +3,27 @@ Authentication API Endpoints
 Login, register, refresh token, etc.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
 import structlog
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
-from app.core.security import (
-    verify_password,
-    get_password_hash,
-    create_token_pair,
-    decode_token,
-    verify_token_type,
-)
-from app.models.user import User
-from app.schemas.auth import Token, RefreshTokenRequest
-from app.schemas.user import UserCreate, UserLogin, UserPINLogin, UserResponse
 from app.api.dependencies import get_current_user
+from app.core.database import get_db
+from app.core.security import (create_token_pair, decode_token,
+                               get_password_hash, verify_password,
+                               verify_token_type)
+from app.models.user import User
+from app.schemas.auth import RefreshTokenRequest, Token
+from app.schemas.user import UserCreate, UserLogin, UserPINLogin, UserResponse
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 async def register(
     request: Request,
     user_data: UserCreate,
@@ -40,18 +38,14 @@ async def register(
 
     if not tenant_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No tenant context"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No tenant context"
         )
 
     # Check if user already exists
     result = await db.execute(
         select(User).where(
-            or_(
-                User.email == user_data.email,
-                User.username == user_data.username
-            ),
-            User.tenant_id == tenant_id
+            or_(User.email == user_data.email, User.username == user_data.username),
+            User.tenant_id == tenant_id,
         )
     )
     existing_user = result.scalar_one_or_none()
@@ -59,7 +53,7 @@ async def register(
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this email or username already exists"
+            detail="User with this email or username already exists",
         )
 
     # Create new user
@@ -105,8 +99,7 @@ async def login(
 
     if not tenant_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No tenant context"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No tenant context"
         )
 
     # Find user by email or username
@@ -114,9 +107,9 @@ async def login(
         select(User).where(
             or_(
                 User.email == credentials.username_or_email,
-                User.username == credentials.username_or_email
+                User.username == credentials.username_or_email,
             ),
-            User.tenant_id == tenant_id
+            User.tenant_id == tenant_id,
         )
     )
     user = result.scalar_one_or_none()
@@ -135,8 +128,7 @@ async def login(
 
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is inactive"
+            status_code=status.HTTP_403_FORBIDDEN, detail="User account is inactive"
         )
 
     # Create tokens
@@ -171,15 +163,13 @@ async def login_with_pin(
 
     if not tenant_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No tenant context"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No tenant context"
         )
 
     # Find user by PIN
     result = await db.execute(
         select(User).where(
-            User.pin_code == credentials.pin_code,
-            User.tenant_id == tenant_id
+            User.pin_code == credentials.pin_code, User.tenant_id == tenant_id
         )
     )
     user = result.scalar_one_or_none()
@@ -198,14 +188,13 @@ async def login_with_pin(
 
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is inactive"
+            status_code=status.HTTP_403_FORBIDDEN, detail="User account is inactive"
         )
 
     if not user.can_access_pos:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User does not have POS access"
+            detail="User does not have POS access",
         )
 
     # Create tokens

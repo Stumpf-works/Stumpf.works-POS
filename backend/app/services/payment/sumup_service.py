@@ -3,8 +3,9 @@ SumUp Payment Integration
 Handles payment processing via SumUp API
 """
 
+from typing import Any, Dict, Optional
+
 import httpx
-from typing import Optional, Dict, Any
 import structlog
 
 from app.core.config import settings
@@ -41,7 +42,7 @@ class SumUpService:
         amount: float,
         currency: str = "EUR",
         reference: Optional[str] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Create a payment checkout.
@@ -64,7 +65,7 @@ class SumUpService:
                     "currency": currency,
                     "merchant_code": self.merchant_code,
                     "description": description,
-                }
+                },
             )
             response.raise_for_status()
             data = response.json()
@@ -97,17 +98,21 @@ class SumUpService:
             response.raise_for_status()
             data = response.json()
 
-            logger.info("sumup_checkout_status", checkout_id=checkout_id, status=data.get("status"))
+            logger.info(
+                "sumup_checkout_status",
+                checkout_id=checkout_id,
+                status=data.get("status"),
+            )
             return data
 
         except Exception as e:
-            logger.exception("sumup_status_error", checkout_id=checkout_id, error=str(e))
+            logger.exception(
+                "sumup_status_error", checkout_id=checkout_id, error=str(e)
+            )
             raise
 
     async def create_refund(
-        self,
-        transaction_id: str,
-        amount: Optional[float] = None
+        self, transaction_id: str, amount: Optional[float] = None
     ) -> Dict[str, Any]:
         """
         Create a refund for a transaction.
@@ -125,17 +130,20 @@ class SumUpService:
                 payload["amount"] = amount
 
             response = await self.client.post(
-                f"/transactions/{transaction_id}/refund",
-                json=payload
+                f"/transactions/{transaction_id}/refund", json=payload
             )
             response.raise_for_status()
             data = response.json()
 
-            logger.info("sumup_refund_created", transaction_id=transaction_id, amount=amount)
+            logger.info(
+                "sumup_refund_created", transaction_id=transaction_id, amount=amount
+            )
             return data
 
         except Exception as e:
-            logger.exception("sumup_refund_error", transaction_id=transaction_id, error=str(e))
+            logger.exception(
+                "sumup_refund_error", transaction_id=transaction_id, error=str(e)
+            )
             raise
 
     def verify_webhook_signature(self, payload: str, signature: str) -> bool:
@@ -149,13 +157,11 @@ class SumUpService:
         Returns:
             True if signature is valid
         """
-        import hmac
         import hashlib
+        import hmac
 
         expected_signature = hmac.new(
-            settings.SUMUP_WEBHOOK_SECRET.encode(),
-            payload.encode(),
-            hashlib.sha256
+            settings.SUMUP_WEBHOOK_SECRET.encode(), payload.encode(), hashlib.sha256
         ).hexdigest()
 
         return hmac.compare_digest(expected_signature, signature)

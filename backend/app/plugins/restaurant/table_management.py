@@ -15,7 +15,8 @@ from typing import Any, Dict, List, Optional
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, select
+from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, String,
+                        select)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, get_db

@@ -3,39 +3,35 @@ Transaction API Endpoints
 POS checkout, transaction management, and reporting
 """
 
-from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-import structlog
+from typing import List, Optional
 
-from app.core.database import get_db
-from app.core.config import settings
-from app.models.transaction import Transaction, TransactionItem, PaymentMethod, TransactionStatus
-from app.models.product import Product
-from app.models.user import User
-from app.schemas.transaction import (
-    TransactionCreate,
-    TransactionResponse,
-    TransactionListResponse,
-    TransactionSearchParams,
-    TransactionStats,
-)
-from app.schemas.base import MessageResponse
+import structlog
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.dependencies import get_current_user, require_cashier
-from app.utils.helpers import generate_receipt_number
+from app.core.config import settings
+from app.core.database import get_db
+from app.models.product import Product
+from app.models.transaction import (PaymentMethod, Transaction,
+                                    TransactionItem, TransactionStatus)
+from app.models.user import User
+from app.schemas.base import MessageResponse
+from app.schemas.transaction import (TransactionCreate,
+                                     TransactionListResponse,
+                                     TransactionResponse,
+                                     TransactionSearchParams, TransactionStats)
 from app.services.tse.tasks import sign_transaction_async
+from app.utils.helpers import generate_receipt_number
 
 logger = structlog.get_logger()
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
 
 async def calculate_transaction_totals(
-    items_data: list,
-    discount_amount: float,
-    db: AsyncSession,
-    tenant_id: str
+    items_data: list, discount_amount: float, db: AsyncSession, tenant_id: str
 ) -> dict:
     """
     Calculate transaction totals from items.
@@ -54,8 +50,7 @@ async def calculate_transaction_totals(
         # Get product
         result = await db.execute(
             select(Product).where(
-                Product.id == item_data.product_id,
-                Product.tenant_id == tenant_id
+                Product.id == item_data.product_id, Product.tenant_id == tenant_id
             )
         )
         product = result.scalar_one_or_none()
@@ -63,20 +58,23 @@ async def calculate_transaction_totals(
         if not product:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Product with ID {item_data.product_id} not found"
+                detail=f"Product with ID {item_data.product_id} not found",
             )
 
         if not product.is_available or not product.is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Product '{product.name}' is not available"
+                detail=f"Product '{product.name}' is not available",
             )
 
         # Check stock
         if product.track_inventory and product.stock_quantity < item_data.quantity:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Insufficient stock for '{product.name}'. Available: {product.stock_quantity}"
+                detail=(
+                    f"Insufficient stock for '{product.name}'. "
+                    f"Available: {product.stock_quantity}"
+                ),
             )
 
         # Calculate item totals
@@ -88,7 +86,9 @@ async def calculate_transaction_totals(
         item_subtotal = unit_price * quantity
 
         # Apply item-level discount if any
-        item_discount = item_data.discount_amount if hasattr(item_data, 'discount_amount') else 0.0
+        item_discount = (
+            item_data.discount_amount if hasattr(item_data, "discount_amount") else 0.0
+        )
         item_subtotal_after_discount = max(0, item_subtotal - item_discount)
 
         # Calculate net and tax
@@ -98,50 +98,54 @@ async def calculate_transaction_totals(
         subtotal_before_discount += item_subtotal_after_discount
         total_tax += item_tax
 
-        items.append({
-            'product': product,
-            'quantity': quantity,
-            'unit_price': unit_price,
-            'vat_rate': vat_rate,
-            'subtotal': item_subtotal_after_discount,
-            'tax_amount': item_tax,
-            'total': item_subtotal_after_discount,
-            'discount_amount': item_discount,
-        })
+        items.append(
+            {
+                "product": product,
+                "quantity": quantity,
+                "unit_price": unit_price,
+                "vat_rate": vat_rate,
+                "subtotal": item_subtotal_after_discount,
+                "tax_amount": item_tax,
+                "total": item_subtotal_after_discount,
+                "discount_amount": item_discount,
+            }
+        )
 
     # Apply transaction-level discount proportionally
     if discount_amount > 0:
         # Distribute discount proportionally across items
         for item in items:
             if subtotal_before_discount > 0:
-                item_discount_ratio = item['subtotal'] / subtotal_before_discount
+                item_discount_ratio = item["subtotal"] / subtotal_before_discount
                 item_discount = round(discount_amount * item_discount_ratio, 2)
 
-                item['discount_amount'] += item_discount
-                item['subtotal'] = max(0, item['subtotal'] - item_discount)
+                item["discount_amount"] += item_discount
+                item["subtotal"] = max(0, item["subtotal"] - item_discount)
 
                 # Recalculate tax for this item
-                vat_rate = item['vat_rate']
-                item_net = round(item['subtotal'] / (1 + vat_rate), 2)
-                item_tax = round(item['subtotal'] - item_net, 2)
+                vat_rate = item["vat_rate"]
+                item_net = round(item["subtotal"] / (1 + vat_rate), 2)
+                item_tax = round(item["subtotal"] - item_net, 2)
 
-                item['tax_amount'] = item_tax
-                item['total'] = item['subtotal']
+                item["tax_amount"] = item_tax
+                item["total"] = item["subtotal"]
 
     # Recalculate totals
-    final_subtotal = sum(item['subtotal'] for item in items)
-    final_tax = sum(item['tax_amount'] for item in items)
-    final_total = sum(item['total'] for item in items)
+    final_subtotal = sum(item["subtotal"] for item in items)
+    final_tax = sum(item["tax_amount"] for item in items)
+    final_total = sum(item["total"] for item in items)
 
     return {
-        'items': items,
-        'subtotal': round(final_subtotal, 2),
-        'tax_amount': round(final_tax, 2),
-        'total': round(final_total, 2),
+        "items": items,
+        "subtotal": round(final_subtotal, 2),
+        "tax_amount": round(final_tax, 2),
+        "total": round(final_total, 2),
     }
 
 
-@router.post("", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_transaction(
     transaction_data: TransactionCreate,
     current_user: User = Depends(require_cashier),
@@ -159,7 +163,7 @@ async def create_transaction(
         transaction_data.items,
         transaction_data.discount_amount,
         db,
-        current_user.tenant_id
+        current_user.tenant_id,
     )
 
     # Validate cash payment
@@ -167,18 +171,24 @@ async def create_transaction(
         if transaction_data.cash_given is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cash amount is required for cash payments"
+                detail="Cash amount is required for cash payments",
             )
-        if transaction_data.cash_given < calc_result['total']:
+        if transaction_data.cash_given < calc_result["total"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Insufficient cash. Total: €{calc_result['total']:.2f}, Given: €{transaction_data.cash_given:.2f}"
+                detail=(
+                    f"Insufficient cash. Total: €{calc_result['total']:.2f}, "
+                    f"Given: €{transaction_data.cash_given:.2f}"
+                ),
             )
 
     # Calculate change
     cash_change = None
-    if transaction_data.payment_method == PaymentMethod.CASH and transaction_data.cash_given:
-        cash_change = round(transaction_data.cash_given - calc_result['total'], 2)
+    if (
+        transaction_data.payment_method == PaymentMethod.CASH
+        and transaction_data.cash_given
+    ):
+        cash_change = round(transaction_data.cash_given - calc_result["total"], 2)
 
     # Generate receipt number
     receipt_number = generate_receipt_number()
@@ -189,9 +199,9 @@ async def create_transaction(
         user_id=current_user.id,
         tenant_id=current_user.tenant_id,
         status=TransactionStatus.COMPLETED,
-        subtotal=calc_result['subtotal'],
-        tax_amount=calc_result['tax_amount'],
-        total=calc_result['total'],
+        subtotal=calc_result["subtotal"],
+        tax_amount=calc_result["tax_amount"],
+        total=calc_result["total"],
         discount_amount=transaction_data.discount_amount,
         payment_method=transaction_data.payment_method,
         cash_given=transaction_data.cash_given,
@@ -206,28 +216,28 @@ async def create_transaction(
     await db.flush()  # Get transaction ID
 
     # Create transaction items and update stock
-    for item_data in calc_result['items']:
-        product = item_data['product']
+    for item_data in calc_result["items"]:
+        product = item_data["product"]
 
         transaction_item = TransactionItem(
             transaction_id=transaction.id,
             product_id=product.id,
             product_name=product.name,
             product_sku=product.sku,
-            quantity=item_data['quantity'],
-            unit_price=item_data['unit_price'],
-            vat_rate=item_data['vat_rate'],
-            subtotal=item_data['subtotal'],
-            tax_amount=item_data['tax_amount'],
-            total=item_data['total'],
-            discount_amount=item_data['discount_amount'],
+            quantity=item_data["quantity"],
+            unit_price=item_data["unit_price"],
+            vat_rate=item_data["vat_rate"],
+            subtotal=item_data["subtotal"],
+            tax_amount=item_data["tax_amount"],
+            total=item_data["total"],
+            discount_amount=item_data["discount_amount"],
         )
 
         db.add(transaction_item)
 
         # Update stock
         if product.track_inventory:
-            product.stock_quantity -= item_data['quantity']
+            product.stock_quantity -= item_data["quantity"]
 
     await db.commit()
     await db.refresh(transaction)
@@ -236,7 +246,7 @@ async def create_transaction(
         "transaction_created",
         transaction_id=transaction.id,
         receipt_number=receipt_number,
-        total=calc_result['total'],
+        total=calc_result["total"],
         payment_method=transaction_data.payment_method.value,
         user_id=current_user.id,
     )
@@ -264,9 +274,7 @@ async def list_transactions(
 ):
     """List transactions with filters."""
 
-    query = select(Transaction).where(
-        Transaction.tenant_id == current_user.tenant_id
-    )
+    query = select(Transaction).where(Transaction.tenant_id == current_user.tenant_id)
 
     # Filters
     if receipt_number:
@@ -308,15 +316,14 @@ async def get_transaction(
     result = await db.execute(
         select(Transaction).where(
             Transaction.id == transaction_id,
-            Transaction.tenant_id == current_user.tenant_id
+            Transaction.tenant_id == current_user.tenant_id,
         )
     )
     transaction = result.scalar_one_or_none()
 
     if not transaction:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transaction not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found"
         )
 
     return transaction
@@ -334,27 +341,26 @@ async def cancel_transaction(
     result = await db.execute(
         select(Transaction).where(
             Transaction.id == transaction_id,
-            Transaction.tenant_id == current_user.tenant_id
+            Transaction.tenant_id == current_user.tenant_id,
         )
     )
     transaction = result.scalar_one_or_none()
 
     if not transaction:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transaction not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found"
         )
 
     if transaction.status == TransactionStatus.CANCELLED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Transaction is already cancelled"
+            detail="Transaction is already cancelled",
         )
 
     if transaction.is_tse_signed:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot cancel TSE-signed transaction. Create a refund instead."
+            detail="Cannot cancel TSE-signed transaction. Create a refund instead.",
         )
 
     # Restore stock
@@ -362,7 +368,7 @@ async def cancel_transaction(
         result = await db.execute(
             select(Product).where(
                 Product.id == item.product_id,
-                Product.tenant_id == current_user.tenant_id
+                Product.tenant_id == current_user.tenant_id,
             )
         )
         product = result.scalar_one_or_none()
@@ -400,7 +406,7 @@ async def get_transaction_stats(
 
     query = select(Transaction).where(
         Transaction.tenant_id == current_user.tenant_id,
-        Transaction.status == TransactionStatus.COMPLETED
+        Transaction.status == TransactionStatus.COMPLETED,
     )
 
     if date_from:

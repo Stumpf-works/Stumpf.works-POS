@@ -6,10 +6,11 @@ and sets the appropriate database schema for the request
 
 import re
 from typing import Optional
-from fastapi import Request, HTTPException, status
+
+import structlog
+from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-import structlog
 
 from app.core.config import settings
 from app.core.database import TenantContext
@@ -100,10 +101,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
             return response
 
         # Extract tenant ID
-        tenant_id = (
-            self._extract_tenant_from_header(request)
-            or self._extract_tenant_from_subdomain(request)
-        )
+        tenant_id = self._extract_tenant_from_header(
+            request
+        ) or self._extract_tenant_from_subdomain(request)
 
         # If no tenant ID found, use default schema
         if not tenant_id:
@@ -117,7 +117,10 @@ class TenantMiddleware(BaseHTTPMiddleware):
             tenant_id = settings.DEFAULT_TENANT_SCHEMA
 
         # Validate tenant ID
-        if not self._validate_tenant_id(tenant_id) and tenant_id != settings.DEFAULT_TENANT_SCHEMA:
+        if (
+            not self._validate_tenant_id(tenant_id)
+            and tenant_id != settings.DEFAULT_TENANT_SCHEMA
+        ):
             logger.error(
                 "invalid_tenant_id",
                 tenant_id=tenant_id,
@@ -125,7 +128,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
             )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid tenant ID format: {tenant_id}"
+                detail=f"Invalid tenant ID format: {tenant_id}",
             )
 
         # Set tenant context

@@ -3,10 +3,13 @@ Transaction Models
 Sales transactions and receipts
 """
 
-from sqlalchemy import Column, String, Float, Integer, ForeignKey, Enum as SQLEnum, Text, Boolean, DateTime
-from sqlalchemy.orm import relationship
 import enum
 from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel, TenantMixin
 
@@ -48,7 +51,9 @@ class Transaction(BaseModel, TenantMixin):
     # location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
 
     # Status
-    status = Column(SQLEnum(TransactionStatus), default=TransactionStatus.PENDING, nullable=False)
+    status = Column(
+        SQLEnum(TransactionStatus), default=TransactionStatus.PENDING, nullable=False
+    )
 
     # Amounts (in EUR)
     subtotal = Column(Float, nullable=False)  # Sum of items before tax
@@ -58,7 +63,9 @@ class Transaction(BaseModel, TenantMixin):
 
     # Payment
     payment_method = Column(SQLEnum(PaymentMethod), nullable=False)
-    payment_reference = Column(String(255), nullable=True)  # External payment ID (SumUp, etc.)
+    payment_reference = Column(
+        String(255), nullable=True
+    )  # External payment ID (SumUp, etc.)
     cash_given = Column(Float, nullable=True)  # Amount given by customer (for cash)
     cash_change = Column(Float, nullable=True)  # Change returned
 
@@ -81,10 +88,15 @@ class Transaction(BaseModel, TenantMixin):
 
     # Relationships
     user = relationship("User", backref="transactions")
-    items = relationship("TransactionItem", back_populates="transaction", cascade="all, delete-orphan")
+    items = relationship(
+        "TransactionItem", back_populates="transaction", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
-        return f"<Transaction(id={self.id}, receipt_number={self.receipt_number}, total={self.total})>"
+        return (
+            f"<Transaction(id={self.id}, receipt_number={self.receipt_number}, "
+            f"total={self.total})>"
+        )
 
     @property
     def is_completed(self) -> bool:
@@ -133,7 +145,10 @@ class TransactionItem(BaseModel):
     product = relationship("Product", backref="transaction_items")
 
     def __repr__(self) -> str:
-        return f"<TransactionItem(id={self.id}, product={self.product_name}, quantity={self.quantity})>"
+        return (
+            f"<TransactionItem(id={self.id}, product={self.product_name}, "
+            f"quantity={self.quantity})>"
+        )
 
     @property
     def net_price(self) -> float:

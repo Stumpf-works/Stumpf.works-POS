@@ -3,8 +3,8 @@ General utility functions
 """
 
 import re
+from datetime import date, datetime
 from typing import Optional
-from datetime import datetime, date
 
 
 def slugify(text: str) -> str:
@@ -140,7 +140,9 @@ def calculate_vat(net_amount: float, vat_rate: float = 0.19) -> tuple[float, flo
     return vat_amount, gross_amount
 
 
-def extract_net_from_gross(gross_amount: float, vat_rate: float = 0.19) -> tuple[float, float]:
+def extract_net_from_gross(
+    gross_amount: float, vat_rate: float = 0.19
+) -> tuple[float, float]:
     """
     Extract net amount and VAT from gross amount.
 

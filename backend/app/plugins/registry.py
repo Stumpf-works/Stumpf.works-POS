@@ -3,11 +3,12 @@ Plugin Registry
 Manages plugin discovery, loading, and lifecycle
 """
 
-import os
 import importlib
 import inspect
-from typing import Dict, List, Optional
+import os
 from pathlib import Path
+from typing import Dict, List, Optional
+
 import structlog
 
 from app.plugins.base import BasePlugin
@@ -50,7 +51,7 @@ class PluginRegistry:
                 continue
 
             # Skip special directories
-            if item.startswith('_') or item.startswith('.'):
+            if item.startswith("_") or item.startswith("."):
                 continue
 
             # Check for plugin.py
@@ -164,7 +165,11 @@ class PluginRegistry:
 
     def get_enabled_plugins(self) -> List[BasePlugin]:
         """Get list of enabled plugins."""
-        return [self._plugins[name] for name in self._enabled_plugins if name in self._plugins]
+        return [
+            self._plugins[name]
+            for name in self._enabled_plugins
+            if name in self._plugins
+        ]
 
     def get_all_plugins(self) -> List[BasePlugin]:
         """Get list of all loaded plugins."""
@@ -178,7 +183,9 @@ class PluginRegistry:
                     await self._plugins[plugin_name].on_startup()
                     logger.info("plugin_started", plugin=plugin_name)
                 except Exception as e:
-                    logger.exception("plugin_startup_error", plugin=plugin_name, error=str(e))
+                    logger.exception(
+                        "plugin_startup_error", plugin=plugin_name, error=str(e)
+                    )
 
     async def shutdown_plugins(self):
         """Call on_shutdown() for all enabled plugins."""
@@ -188,7 +195,9 @@ class PluginRegistry:
                     await self._plugins[plugin_name].on_shutdown()
                     logger.info("plugin_shutdown", plugin=plugin_name)
                 except Exception as e:
-                    logger.exception("plugin_shutdown_error", plugin=plugin_name, error=str(e))
+                    logger.exception(
+                        "plugin_shutdown_error", plugin=plugin_name, error=str(e)
+                    )
 
 
 # Global plugin registry instance

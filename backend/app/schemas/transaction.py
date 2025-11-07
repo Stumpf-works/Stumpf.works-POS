@@ -3,16 +3,19 @@ Transaction Schemas
 Pydantic schemas for transaction-related API requests/responses
 """
 
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
 from pydantic import Field
-from app.schemas.base import BaseSchema, BaseResponse
+
 from app.models.transaction import PaymentMethod, TransactionStatus
+from app.schemas.base import BaseResponse, BaseSchema
 
 
 # Transaction Item Schemas
 class TransactionItemCreate(BaseSchema):
     """Schema for creating a transaction item."""
+
     product_id: int
     quantity: int = Field(..., gt=0)
     discount_amount: float = Field(default=0.0, ge=0)
@@ -20,6 +23,7 @@ class TransactionItemCreate(BaseSchema):
 
 class TransactionItemResponse(BaseSchema):
     """Schema for transaction item response."""
+
     id: int
     product_id: int
     product_name: str
@@ -36,6 +40,7 @@ class TransactionItemResponse(BaseSchema):
 # Transaction Schemas
 class TransactionCreate(BaseSchema):
     """Schema for creating a transaction."""
+
     items: List[TransactionItemCreate] = Field(..., min_length=1)
     payment_method: PaymentMethod
     cash_given: Optional[float] = Field(None, ge=0)
@@ -47,6 +52,7 @@ class TransactionCreate(BaseSchema):
 
 class TransactionResponse(BaseResponse):
     """Schema for transaction response."""
+
     receipt_number: str
     user_id: int
     status: TransactionStatus
@@ -72,6 +78,7 @@ class TransactionResponse(BaseResponse):
 
 class TransactionListResponse(BaseResponse):
     """Schema for transaction list (without items for performance)."""
+
     receipt_number: str
     user_id: int
     status: TransactionStatus
@@ -84,6 +91,7 @@ class TransactionListResponse(BaseResponse):
 
 class TransactionSearchParams(BaseSchema):
     """Schema for transaction search parameters."""
+
     receipt_number: Optional[str] = None
     user_id: Optional[int] = None
     status: Optional[TransactionStatus] = None
@@ -96,6 +104,7 @@ class TransactionSearchParams(BaseSchema):
 
 class TransactionStats(BaseSchema):
     """Schema for transaction statistics."""
+
     total_transactions: int
     total_revenue: float
     total_tax: float
