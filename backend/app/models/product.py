@@ -120,3 +120,7 @@ class Product(BaseModel, TenantMixin):
         if not self.track_inventory:
             return False
         return self.stock_quantity <= 0
+
+
+# Alias for backward compatibility with tests
+Category = ProductCategory
