@@ -2,12 +2,29 @@
 
 ## Übersicht
 
-Dieses Dokument beschreibt die Frontend-Integration der vier neuen POS-Plugins:
+Dieses Dokument beschreibt die Frontend-Integration aller 10 POS-Plugins:
 
-1. **Bakery Management** - Rezeptverwaltung, Produktionsplanung, Chargenverfolgung
-2. **Delivery Management** - Lieferauftragsverwaltung, Fahrer-Tracking, GPS-Integration
-3. **Advanced Analytics** - Dashboards, Berichte, Prognosen, Datenexport
-4. **Payment Gateway** - Multi-Provider-Zahlungen, Terminals, Transaktionsverwaltung
+### Restaurant Plugins
+1. **Table Management** - Tischverwaltung, Reservierungen, Raumplan
+2. **Kitchen Display System** - Digitales Küchendisplay mit Echtzeit-Updates
+
+### Retail & Inventory
+3. **Inventory Management** - Bestandsverwaltung, Lieferanten, Bestellungen
+4. **Bakery Management** - Rezeptverwaltung, Produktionsplanung, Chargenverfolgung
+
+### Operations
+5. **Employee Time Tracking** - Arbeitszeiterfassung, Schichtplanung, Überstunden
+6. **Cash Management** - Kassenverwaltung, Z-Berichte, GoBD-konform
+7. **Delivery Management** - Lieferauftragsverwaltung, Fahrer-Tracking, GPS-Integration
+
+### Customer & Marketing
+8. **Loyalty Program** - Treueprogramm, Punktesystem, Rewards
+
+### Business Intelligence
+9. **Advanced Analytics** - Dashboards, Berichte, Prognosen, Datenexport
+
+### Financial
+10. **Payment Gateway** - Multi-Provider-Zahlungen, Terminals, Transaktionsverwaltung
 
 ## Projekt-Setup
 
@@ -49,8 +66,18 @@ npm install date-fns
 # Export Tools
 npm install jspdf jspdf-autotable
 
-# WebSocket (Delivery Real-time)
+# WebSocket (Delivery & Kitchen Display Real-time)
 npm install socket.io-client
+
+# Drag-and-Drop (Table Management)
+npm install @dnd-kit/core @dnd-kit/sortable
+npm install react-dnd react-dnd-html5-backend
+
+# Canvas Rendering (Table Management Floor Plans)
+npm install react-konva konva
+
+# Audio (Kitchen Display Alerts)
+npm install howler
 ```
 
 ### 2. TypeScript-Konfiguration
@@ -441,12 +468,27 @@ export function ErrorState({
 
 ## Plugin-spezifische Dokumentation
 
-Detaillierte Frontend-Implementierungen für jeden Plugin:
+Detaillierte Frontend-Implementierungen für alle 10 Plugins:
 
-- [Bakery Management Frontend →](./bakery-management-frontend.md)
-- [Delivery Management Frontend →](./delivery-management-frontend.md)
-- [Advanced Analytics Frontend →](./advanced-analytics-frontend.md)
-- [Payment Gateway Frontend →](./payment-gateway-frontend.md)
+### Restaurant & Service
+- [Table Management Frontend →](./table-management-frontend.md) - Tischverwaltung, Reservierungen
+- [Kitchen Display System Frontend →](./kitchen-display-frontend.md) - Küchendisplay mit Real-time
+
+### Retail & Inventory
+- [Inventory Management Frontend →](./inventory-management-frontend.md) - Bestandsverwaltung
+- [Bakery Management Frontend →](./bakery-management-frontend.md) - Bäckerei-spezifische Funktionen
+
+### Operations
+- [Employee Time Tracking Frontend →](./employee-time-tracking-frontend.md) - Zeiterfassung
+- [Cash Management Frontend →](./cash-management-frontend.md) - Kassenverwaltung & Z-Berichte
+- [Delivery Management Frontend →](./delivery-management-frontend.md) - Lieferung & GPS-Tracking
+
+### Marketing & Customers
+- [Loyalty Program Frontend →](./loyalty-program-frontend.md) - Treueprogramm
+
+### Analytics & Payments
+- [Advanced Analytics Frontend →](./advanced-analytics-frontend.md) - Dashboards & Berichte
+- [Payment Gateway Frontend →](./payment-gateway-frontend.md) - Multi-Provider-Zahlungen
 
 ## Testing
 
