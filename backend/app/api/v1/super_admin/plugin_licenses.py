@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -452,7 +452,7 @@ async def revoke_plugin_license(
 @router.post("/{license_id}/extend")
 async def extend_plugin_license(
     license_id: int,
-    days: int = Field(..., gt=0, description="Number of days to extend"),
+    days: int = Body(..., gt=0, description="Number of days to extend"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_super_admin),
 ):
