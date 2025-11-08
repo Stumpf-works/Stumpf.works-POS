@@ -27,6 +27,7 @@ ENV/
 # FastAPI
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
 .mypy_cache/
 .ruff_cache/
