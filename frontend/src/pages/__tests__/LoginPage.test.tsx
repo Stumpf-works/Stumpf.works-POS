@@ -27,14 +27,16 @@ describe('LoginPage', () => {
 
     expect(screen.getByLabelText(/benutzername/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/passwort/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /anmelden/i })).toBeInTheDocument()
+    const submitButtons = screen.getAllByRole('button', { name: /anmelden/i })
+    expect(submitButtons.length).toBeGreaterThan(0)
   })
 
   it('should show validation errors for empty fields', async () => {
     const user = userEvent.setup()
     renderWithProviders(<LoginPage />)
 
-    const submitButton = screen.getByRole('button', { name: /anmelden/i })
+    const submitButtons = screen.getAllByRole('button', { name: /anmelden/i })
+    const submitButton = submitButtons[0] // Get the first button (form submit)
     await user.click(submitButton)
 
     // HTML5 validation should prevent submission
@@ -63,7 +65,8 @@ describe('LoginPage', () => {
 
     await user.type(screen.getByLabelText(/benutzername/i), 'testuser')
     await user.type(screen.getByLabelText(/passwort/i), 'password123')
-    await user.click(screen.getByRole('button', { name: /anmelden/i }))
+    const submitButtons = screen.getAllByRole('button', { name: /anmelden/i })
+    await user.click(submitButtons[0])
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/auth/login', {
@@ -88,7 +91,8 @@ describe('LoginPage', () => {
 
     await user.type(screen.getByLabelText(/benutzername/i), 'wronguser')
     await user.type(screen.getByLabelText(/passwort/i), 'wrongpassword')
-    await user.click(screen.getByRole('button', { name: /anmelden/i }))
+    const submitButtons = screen.getAllByRole('button', { name: /anmelden/i })
+    await user.click(submitButtons[0])
 
     await waitFor(() => {
       expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument()

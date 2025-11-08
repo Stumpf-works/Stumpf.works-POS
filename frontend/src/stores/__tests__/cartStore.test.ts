@@ -70,29 +70,29 @@ describe('CartStore', () => {
     useCartStore.getState().addItem(mockProduct)
     useCartStore.getState().updateQuantity(mockProduct.id, 2)
 
-    const { subtotal } = useCartStore.getState()
-    expect(subtotal).toBe(20.00)
+    const { getSubtotal } = useCartStore.getState()
+    expect(getSubtotal()).toBe(20.00)
   })
 
   it('should calculate VAT correctly', () => {
-    const { addItem, updateQuantity, vatAmount } = useCartStore.getState()
+    const { addItem, updateQuantity, getTaxAmount } = useCartStore.getState()
 
     addItem(mockProduct)
     updateQuantity(mockProduct.id, 1)
 
     // VAT = 10.00 * 0.19 = 1.90
     const expectedVat = 10.00 * (19.0 / 100)
-    expect(Math.abs(vatAmount() - expectedVat)).toBeLessThan(0.01)
+    expect(Math.abs(getTaxAmount() - expectedVat)).toBeLessThan(0.01)
   })
 
   it('should calculate total correctly', () => {
-    const { addItem, updateQuantity, total } = useCartStore.getState()
+    const { addItem, updateQuantity, getTotal } = useCartStore.getState()
 
     addItem(mockProduct)
     updateQuantity(mockProduct.id, 1)
 
     // Total = price (already includes VAT in our model)
-    expect(total()).toBe(10.00)
+    expect(getTotal()).toBe(10.00)
   })
 
   it('should clear cart', () => {

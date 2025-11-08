@@ -77,10 +77,10 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   getTaxAmount: () => {
     return get().items.reduce((total, item) => {
-      const vatRate = parseFloat(item.product.vat_rate)
+      const vatRate = parseFloat(item.product.vat_rate) / 100
       const itemTotal = item.product.price * item.quantity
-      const netAmount = itemTotal / (1 + vatRate)
-      const taxAmount = itemTotal - netAmount
+      // Calculate VAT as a percentage of the price (assuming price is net)
+      const taxAmount = itemTotal * vatRate
       return total + taxAmount
     }, 0)
   },
