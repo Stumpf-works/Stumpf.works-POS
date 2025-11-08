@@ -2,7 +2,7 @@
  * Tests for Auth Store
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { useAuthStore } from '../authStore'
 
 describe('AuthStore', () => {

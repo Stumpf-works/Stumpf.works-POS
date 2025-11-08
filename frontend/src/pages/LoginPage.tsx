@@ -30,8 +30,11 @@ export default function LoginPage() {
         toast.error('Fehler beim Laden der Benutzerdaten')
       }
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Login fehlgeschlagen')
+    onError: (error: unknown) => {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
+        : undefined
+      toast.error(errorMessage || 'Login fehlgeschlagen')
     },
   })
 

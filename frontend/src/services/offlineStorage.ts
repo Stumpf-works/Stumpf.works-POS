@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb'
-import { Transaction, Product } from '@/types'
+import { Product } from '@/types'
 
 interface POSDatabase extends DBSchema {
   products: {
@@ -11,7 +11,7 @@ interface POSDatabase extends DBSchema {
     key: string // UUID
     value: {
       id: string
-      transactionData: any
+      transactionData: Record<string, unknown>
       createdAt: string
       synced: boolean
     }
@@ -22,7 +22,7 @@ interface POSDatabase extends DBSchema {
       id: string
       type: 'product_update' | 'stock_adjustment' | 'other'
       action: string
-      data: any
+      data: Record<string, unknown>
       createdAt: string
       synced: boolean
     }
@@ -104,7 +104,7 @@ class OfflineStorageService {
   }
 
   // Pending transactions methods
-  async savePendingTransaction(transactionData: any): Promise<string> {
+  async savePendingTransaction(transactionData: Record<string, unknown>): Promise<string> {
     await this.init()
     if (!this.db) throw new Error('Database not initialized')
 
@@ -120,7 +120,7 @@ class OfflineStorageService {
     return id
   }
 
-  async getPendingTransactions(): Promise<any[]> {
+  async getPendingTransactions(): Promise<Array<{ id: string; transactionData: Record<string, unknown>; createdAt: string; synced: boolean }>> {
     await this.init()
     if (!this.db) return []
 
@@ -150,7 +150,7 @@ class OfflineStorageService {
   async addToOfflineQueue(
     type: 'product_update' | 'stock_adjustment' | 'other',
     action: string,
-    data: any
+    data: Record<string, unknown>
   ): Promise<string> {
     await this.init()
     if (!this.db) throw new Error('Database not initialized')
@@ -169,7 +169,7 @@ class OfflineStorageService {
     return id
   }
 
-  async getOfflineQueue(): Promise<any[]> {
+  async getOfflineQueue(): Promise<Array<{ id: string; type: 'product_update' | 'stock_adjustment' | 'other'; action: string; data: Record<string, unknown>; createdAt: string; synced: boolean }>> {
     await this.init()
     if (!this.db) return []
 

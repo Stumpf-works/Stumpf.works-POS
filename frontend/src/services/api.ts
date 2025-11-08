@@ -97,16 +97,16 @@ function getTenantId(): string | null {
 // API methods
 export const api = {
   // Generic methods
-  get: <T = any>(url: string, config?: AxiosRequestConfig) =>
+  get: <T = unknown>(url: string, config?: AxiosRequestConfig) =>
     apiClient.get<T>(url, config).then((res) => res.data),
 
-  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) =>
+  post: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
     apiClient.post<T>(url, data, config).then((res) => res.data),
 
-  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) =>
+  put: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
     apiClient.put<T>(url, data, config).then((res) => res.data),
 
-  delete: <T = any>(url: string, config?: AxiosRequestConfig) =>
+  delete: <T = unknown>(url: string, config?: AxiosRequestConfig) =>
     apiClient.delete<T>(url, config).then((res) => res.data),
 
   // Auth endpoints
@@ -117,7 +117,7 @@ export const api = {
     loginWithPIN: (pin_code: string) =>
       api.post('/auth/login/pin', { pin_code }),
 
-    register: (data: any) => api.post('/auth/register', data),
+    register: (data: Record<string, unknown>) => api.post('/auth/register', data),
 
     logout: () => api.post('/auth/logout'),
 
@@ -129,13 +129,13 @@ export const api = {
 
   // Product endpoints
   products: {
-    list: (params?: any) => api.get('/products', { params }),
+    list: (params?: Record<string, unknown>) => api.get('/products', { params }),
 
     get: (id: number) => api.get(`/products/${id}`),
 
-    create: (data: any) => api.post('/products', data),
+    create: (data: Record<string, unknown>) => api.post('/products', data),
 
-    update: (id: number, data: any) => api.put(`/products/${id}`, data),
+    update: (id: number, data: Record<string, unknown>) => api.put(`/products/${id}`, data),
 
     delete: (id: number) => api.delete(`/products/${id}`),
 
@@ -145,29 +145,29 @@ export const api = {
 
   // Product categories
   categories: {
-    list: (params?: any) => api.get('/products/categories', { params }),
+    list: (params?: Record<string, unknown>) => api.get('/products/categories', { params }),
 
     get: (id: number) => api.get(`/products/categories/${id}`),
 
-    create: (data: any) => api.post('/products/categories', data),
+    create: (data: Record<string, unknown>) => api.post('/products/categories', data),
 
-    update: (id: number, data: any) => api.put(`/products/categories/${id}`, data),
+    update: (id: number, data: Record<string, unknown>) => api.put(`/products/categories/${id}`, data),
 
     delete: (id: number) => api.delete(`/products/categories/${id}`),
   },
 
   // Transaction endpoints
   transactions: {
-    list: (params?: any) => api.get('/transactions', { params }),
+    list: (params?: Record<string, unknown>) => api.get('/transactions', { params }),
 
     get: (id: number) => api.get(`/transactions/${id}`),
 
-    create: (data: any) => api.post('/transactions', data),
+    create: (data: Record<string, unknown>) => api.post('/transactions', data),
 
     cancel: (id: number, reason?: string) =>
       api.post(`/transactions/${id}/cancel`, { reason }),
 
-    stats: (params?: any) => api.get('/transactions/stats/summary', { params }),
+    stats: (params?: Record<string, unknown>) => api.get('/transactions/stats/summary', { params }),
   },
 }
 

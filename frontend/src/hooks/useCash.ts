@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { cashApi } from '@/services/pluginApi'
-import { CashRegister, CashSession, CashMovement, CashCount } from '@/types/plugins'
+import { CashRegister, CashMovement, CashCount } from '@/types/plugins'
 import toast from 'react-hot-toast'
 
 // Registers

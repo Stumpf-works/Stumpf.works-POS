@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { analyticsApi } from '@/services/pluginApi'
-import { Dashboard, Report, KPIMetric, DateRange } from '@/types/plugins'
+import { Dashboard, DateRange } from '@/types/plugins'
 import toast from 'react-hot-toast'
 
 // Dashboards
@@ -58,7 +58,7 @@ export function useReport(id: number) {
 
 export function useRunReport() {
   return useMutation({
-    mutationFn: ({ id, filters }: { id: number; filters?: any }) =>
+    mutationFn: ({ id, filters }: { id: number; filters?: Record<string, unknown> }) =>
       analyticsApi.runReport(id, filters),
     onSuccess: () => {
       toast.success('Bericht generiert')

@@ -49,7 +49,7 @@ export default function PluginLicensesPage() {
   const queryClient = useQueryClient()
   const [view, setView] = useState<'licenses' | 'tenants'>('tenants')
   const [showGrantModal, setShowGrantModal] = useState(false)
-  const [selectedLicense, setSelectedLicense] = useState<PluginLicense | null>(null)
+  const [, setSelectedLicense] = useState<PluginLicense | null>(null)
   const [filterTenant, setFilterTenant] = useState('')
   const [filterPlugin, setFilterPlugin] = useState('')
 
@@ -73,7 +73,7 @@ export default function PluginLicensesPage() {
   })
 
   // Fetch all licenses
-  const { data: licenses = [], isLoading } = useQuery<PluginLicense[]>({
+  const { data: licenses = [] } = useQuery<PluginLicense[]>({
     queryKey: ['super-admin-licenses', filterTenant, filterPlugin],
     queryFn: async () => {
       const params = new URLSearchParams()
@@ -101,7 +101,7 @@ export default function PluginLicensesPage() {
 
   // Update license mutation
   const updateLicenseMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+    mutationFn: async ({ id, data }: { id: number; data: Record<string, unknown> }) => {
       const response = await api.patch(`/super-admin/plugin-licenses/${id}`, data)
       return response.data
     },

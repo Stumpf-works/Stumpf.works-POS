@@ -2,6 +2,7 @@
  * Test Utilities
  * Helper functions for testing React components
  */
+/* eslint-disable react-refresh/only-export-components */
 
 import { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'

@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoadingState } from '@/components/shared/LoadingState'
 import { ErrorState } from '@/components/shared/ErrorState'
-import { TrendingUp, TrendingDown, CreditCard, DollarSign, AlertCircle } from 'lucide-react'
+import { TrendingUp, CreditCard, DollarSign, AlertCircle } from 'lucide-react'
 import { usePaymentProviders, usePaymentTransactions, usePaymentTerminals } from '@/hooks/usePayment'
 
 export function PaymentDashboard() {

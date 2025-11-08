@@ -8,7 +8,7 @@ import { useClockIn, useClockOut, useStartBreak, useEndBreak } from '@/hooks/use
 
 export function ClockTerminal() {
   const [employeeId, setEmployeeId] = useState('')
-  const [currentEmployee, setCurrentEmployee] = useState<any>(null)
+  const [currentEmployee, setCurrentEmployee] = useState<{ id: number; name: string; status: string } | null>(null)
 
   const clockIn = useClockIn()
   const clockOut = useClockOut()

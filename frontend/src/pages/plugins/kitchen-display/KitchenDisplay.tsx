@@ -6,10 +6,10 @@ import { LoadingState } from '@/components/shared/LoadingState'
 import { ErrorState } from '@/components/shared/ErrorState'
 import { Clock, AlertCircle, ChefHat, Play, Check } from 'lucide-react'
 import { useKitchenOrders, useStartOrder, useCompleteOrder } from '@/hooks/useKitchenDisplay'
-import { OrderPriority, OrderStatus } from '@/types/plugins'
+import { OrderPriority } from '@/types/plugins'
 
 export function KitchenDisplay() {
-  const [selectedStation, setSelectedStation] = useState<number>()
+  const [selectedStation] = useState<number>()
   const { data: orders, isLoading, error, refetch } = useKitchenOrders(selectedStation, undefined)
   const startOrder = useStartOrder()
   const completeOrder = useCompleteOrder()
@@ -28,20 +28,21 @@ export function KitchenDisplay() {
     }
   }
 
-  const getStatusColor = (status: OrderStatus) => {
-    switch (status) {
-      case 'new':
-        return 'bg-blue-600'
-      case 'preparing':
-        return 'bg-yellow-600'
-      case 'ready':
-        return 'bg-green-600'
-      case 'served':
-        return 'bg-gray-600'
-      default:
-        return 'bg-gray-400'
-    }
-  }
+  // Unused function - kept for future use
+  // const getStatusColor = (status: OrderStatus) => {
+  //   switch (status) {
+  //     case 'new':
+  //       return 'bg-blue-600'
+  //     case 'preparing':
+  //       return 'bg-yellow-600'
+  //     case 'ready':
+  //       return 'bg-green-600'
+  //     case 'served':
+  //       return 'bg-gray-600'
+  //     default:
+  //       return 'bg-gray-400'
+  //   }
+  // }
 
   const getElapsedTime = (createdAt: string) => {
     const elapsed = Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000 / 60)

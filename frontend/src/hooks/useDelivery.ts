@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { deliveryApi } from '@/services/pluginApi'
-import { DeliveryOrder, Driver, DeliveryStatus, DriverStatus } from '@/types/plugins'
+import { DeliveryStatus, DriverStatus } from '@/types/plugins'
 import toast from 'react-hot-toast'
 
 // Delivery Orders

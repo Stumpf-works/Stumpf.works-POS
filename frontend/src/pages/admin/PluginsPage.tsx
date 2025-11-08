@@ -17,7 +17,7 @@ interface PluginInfo {
   is_enabled: boolean
   is_loaded: boolean
   requires: string[]
-  config_schema?: any
+  config_schema?: Record<string, unknown>
   // License info
   is_licensed: boolean
   license_type?: string
@@ -39,7 +39,7 @@ export default function PluginsPage() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey>('all')
   const [selectedPlugin, setSelectedPlugin] = useState<PluginInfo | null>(null)
   const [showConfigModal, setShowConfigModal] = useState(false)
-  const [pluginConfig, setPluginConfig] = useState<any>({})
+  const [pluginConfig, setPluginConfig] = useState<Record<string, unknown>>({})
 
   // Fetch plugins
   const { data: plugins = [], isLoading } = useQuery<PluginInfo[]>({
@@ -61,7 +61,7 @@ export default function PluginsPage() {
 
   // Enable plugin mutation
   const enablePluginMutation = useMutation({
-    mutationFn: async ({ name, config }: { name: string; config?: any }) => {
+    mutationFn: async ({ name, config }: { name: string; config?: Record<string, unknown> }) => {
       const response = await api.post(`/plugins/${name}/enable`, { config })
       return response.data
     },
@@ -85,7 +85,7 @@ export default function PluginsPage() {
 
   // Update plugin config mutation
   const updateConfigMutation = useMutation({
-    mutationFn: async ({ name, config }: { name: string; config: any }) => {
+    mutationFn: async ({ name, config }: { name: string; config: Record<string, unknown> }) => {
       const response = await api.patch(`/plugins/${name}/config`, config)
       return response.data
     },
@@ -347,7 +347,7 @@ export default function PluginsPage() {
                   <h3>Einstellungen</h3>
                   {Object.entries(
                     selectedPlugin.config_schema.properties || {}
-                  ).map(([key, schema]: [string, any]) => (
+                  ).map(([key, schema]) => (
                     <div key={key} className="form-group">
                       <label htmlFor={key}>
                         {schema.description || key}

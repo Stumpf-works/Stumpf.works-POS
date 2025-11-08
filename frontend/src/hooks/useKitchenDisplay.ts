@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { kitchenApi } from '@/services/pluginApi'
-import { KitchenStation, KitchenOrder, OrderStatus } from '@/types/plugins'
+import { KitchenStation, OrderStatus } from '@/types/plugins'
 import toast from 'react-hot-toast'
 
 // Stations
