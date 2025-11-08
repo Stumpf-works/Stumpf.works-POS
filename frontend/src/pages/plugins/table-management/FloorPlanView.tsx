@@ -61,7 +61,7 @@ export function FloorPlanView() {
     setSelectedFloorId(floors[0].id)
   }
 
-  const currentFloor = floors?.find((f) => f.id === selectedFloorId)
+  // const currentFloor = floors?.find((f) => f.id === selectedFloorId)
 
   return (
     <div className="space-y-6">

@@ -46,14 +46,17 @@ export default function POSPage() {
 
   // Create transaction mutation
   const createTransactionMutation = useMutation({
-    mutationFn: (data: any) => api.transactions.create(data),
+    mutationFn: (data: Record<string, unknown>) => api.transactions.create(data),
     onSuccess: (data) => {
       toast.success(`Verkauf erfolgreich! Beleg: ${data.receipt_number}`)
       clearCart()
       // TODO: Print receipt
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Fehler beim Erstellen der Transaktion')
+    onError: (error: unknown) => {
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
+        : undefined
+      toast.error(errorMessage || 'Fehler beim Erstellen der Transaktion')
     },
   })
 
@@ -86,7 +89,7 @@ export default function POSPage() {
       discount_amount: 0,
     }))
 
-    const transactionData: any = {
+    const transactionData: Record<string, unknown> = {
       items,
       payment_method: paymentMethod,
       discount_amount: 0,
@@ -180,7 +183,7 @@ export default function POSPage() {
               >
                 Alle
               </button>
-              {categories.map((cat: any) => (
+              {categories.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}

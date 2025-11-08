@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { api } from '@/services/api'
 import { offlineStorage } from '@/services/offlineStorage'
@@ -38,6 +37,7 @@ export function useOfflineSync() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Update sync status

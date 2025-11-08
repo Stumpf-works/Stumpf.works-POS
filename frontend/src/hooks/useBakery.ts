@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { bakeryApi } from '@/services/pluginApi'
-import { Recipe, ProductionPlan, Batch, RecipeCategory, BatchStatus } from '@/types/plugins'
+import { Recipe, ProductionPlan, RecipeCategory, BatchStatus } from '@/types/plugins'
 import toast from 'react-hot-toast'
 
 // Recipes

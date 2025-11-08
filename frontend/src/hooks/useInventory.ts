@@ -4,7 +4,7 @@ import { InventoryItem, Supplier, PurchaseOrder, StockMovement } from '@/types/p
 import toast from 'react-hot-toast'
 
 // Inventory Items
-export function useInventoryItems(params?: any) {
+export function useInventoryItems(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: ['inventory', 'items', params],
     queryFn: async () => {
@@ -91,7 +91,7 @@ export function useCreateSupplier() {
 }
 
 // Purchase Orders
-export function usePurchaseOrders(status?: any) {
+export function usePurchaseOrders(status?: string) {
   return useQuery({
     queryKey: ['inventory', 'purchase-orders', status],
     queryFn: async () => {

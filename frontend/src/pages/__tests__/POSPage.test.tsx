@@ -181,7 +181,7 @@ describe('POSPage', () => {
   })
 
   it('should filter products by category', async () => {
-    const user = userEvent.setup()
+    // const user = userEvent.setup()
     const { api } = await import('../../services/api')
 
     vi.mocked(api.get).mockImplementation((url) => {

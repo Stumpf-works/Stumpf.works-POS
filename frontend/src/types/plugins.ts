@@ -44,7 +44,7 @@ export interface PaymentTerminal {
   is_online: boolean
   connection_status: TerminalConnectionStatus
   last_seen_at?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   created_at: string
   updated_at: string
 }
@@ -60,7 +60,7 @@ export interface PaymentTransaction {
   status: PaymentStatus
   payment_method: string
   customer_email?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   error_message?: string
   created_at: string
   updated_at: string
@@ -548,7 +548,7 @@ export interface DashboardWidget {
   widget_title: string
   chart_type?: ChartType
   data_source: string
-  config: Record<string, any>
+  config: Record<string, unknown>
   position_x: number
   position_y: number
   width: number
@@ -560,7 +560,7 @@ export interface Report {
   report_name: string
   report_type: 'sales' | 'inventory' | 'employee' | 'customer' | 'financial' | 'custom'
   description?: string
-  filters: Record<string, any>
+  filters: Record<string, unknown>
   columns: ReportColumn[]
   created_by_user_id: number
   created_at: string

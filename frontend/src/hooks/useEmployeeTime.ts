@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { employeeTimeApi } from '@/services/pluginApi'
-import { TimeEntry, TimeSheet, Shift } from '@/types/plugins'
+import { Shift } from '@/types/plugins'
 import toast from 'react-hot-toast'
 
 // Time Entries

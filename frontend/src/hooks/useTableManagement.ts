@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { tableApi } from '@/services/pluginApi'
-import { Floor, Table, Reservation, TableStatus, ReservationStatus } from '@/types/plugins'
+import { Floor, Reservation, TableStatus } from '@/types/plugins'
 import toast from 'react-hot-toast'
 
 // Floors
@@ -73,7 +73,7 @@ export function useUpdateTableStatus() {
 }
 
 // Reservations
-export function useReservations(params?: any) {
+export function useReservations(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: ['table-management', 'reservations', params],
     queryFn: async () => {

@@ -22,7 +22,7 @@ export const paymentApi = {
   deleteTerminal: (id: number) => api.delete(`/payments/terminals/${id}`),
 
   // Transactions
-  getTransactions: (params?: any) => api.get<{ transactions: Types.PaymentTransaction[] }>('/payments/transactions', { params }),
+  getTransactions: (params?: Record<string, unknown>) => api.get<{ transactions: Types.PaymentTransaction[] }>('/payments/transactions', { params }),
   getTransaction: (id: number) => api.get<Types.PaymentTransaction>(`/payments/transactions/${id}`),
   createTransaction: (data: Partial<Types.PaymentTransaction>) => api.post('/payments/transactions', data),
   refundTransaction: (id: number, amount?: number) => api.post(`/payments/transactions/${id}/refund`, { amount }),
@@ -75,7 +75,7 @@ export const tableApi = {
   updateTableStatus: (id: number, status: Types.TableStatus) => api.put(`/table-management/tables/${id}/status`, { status }),
 
   // Reservations
-  getReservations: (params?: any) => api.get<{ reservations: Types.Reservation[] }>('/table-management/reservations', { params }),
+  getReservations: (params?: Record<string, unknown>) => api.get<{ reservations: Types.Reservation[] }>('/table-management/reservations', { params }),
   getReservation: (id: number) => api.get<Types.Reservation>(`/table-management/reservations/${id}`),
   createReservation: (data: Partial<Types.Reservation>) => api.post('/table-management/reservations', data),
   updateReservation: (id: number, data: Partial<Types.Reservation>) => api.put(`/table-management/reservations/${id}`, data),
@@ -133,7 +133,7 @@ export const employeeTimeApi = {
 
 export const inventoryApi = {
   // Inventory Items
-  getInventoryItems: (params?: any) => api.get<{ items: Types.InventoryItem[] }>('/inventory/items', { params }),
+  getInventoryItems: (params?: Record<string, unknown>) => api.get<{ items: Types.InventoryItem[] }>('/inventory/items', { params }),
   getInventoryItem: (id: number) => api.get<Types.InventoryItem>(`/inventory/items/${id}`),
   updateInventoryItem: (id: number, data: Partial<Types.InventoryItem>) => api.put(`/inventory/items/${id}`, data),
 
@@ -248,7 +248,7 @@ export const analyticsApi = {
   getReports: () => api.get<{ reports: Types.Report[] }>('/analytics/reports'),
   getReport: (id: number) => api.get<Types.Report>(`/analytics/reports/${id}`),
   createReport: (data: Partial<Types.Report>) => api.post('/analytics/reports', data),
-  runReport: (id: number, filters?: any) => api.post(`/analytics/reports/${id}/run`, { filters }),
+  runReport: (id: number, filters?: Record<string, unknown>) => api.post(`/analytics/reports/${id}/run`, { filters }),
   exportReport: (id: number, format: 'csv' | 'xlsx' | 'pdf') => api.get(`/analytics/reports/${id}/export`, { params: { format }, responseType: 'blob' }),
 
   // KPIs

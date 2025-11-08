@@ -8,7 +8,7 @@ interface PluginState {
   availablePlugins: Plugin[]
 
   // Plugin settings per plugin
-  pluginSettings: Record<string, any>
+  pluginSettings: Record<string, Record<string, unknown>>
 
   // Loading states
   isLoading: boolean
@@ -17,9 +17,9 @@ interface PluginState {
   // Actions
   setActivePlugins: (plugins: string[]) => void
   setAvailablePlugins: (plugins: Plugin[]) => void
-  setPluginSettings: (pluginName: string, settings: any) => void
+  setPluginSettings: (pluginName: string, settings: Record<string, unknown>) => void
   isPluginActive: (pluginName: string) => boolean
-  getPluginSettings: (pluginName: string) => any
+  getPluginSettings: (pluginName: string) => Record<string, unknown>
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   reset: () => void

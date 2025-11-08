@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { loyaltyApi } from '@/services/pluginApi'
-import { LoyaltyCustomer, Reward, RewardRedemption, LoyaltyTier } from '@/types/plugins'
+import { Reward, LoyaltyTier } from '@/types/plugins'
 import toast from 'react-hot-toast'
 
 // Customers

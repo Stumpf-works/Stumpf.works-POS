@@ -1,6 +1,5 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Download, Printer, FileText, TrendingUp, TrendingDown } from 'lucide-react'
 
 export function ZReportView() {

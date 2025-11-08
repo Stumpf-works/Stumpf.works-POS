@@ -65,7 +65,7 @@ export function useCreatePaymentTerminal() {
 }
 
 // Transactions
-export function usePaymentTransactions(params?: any) {
+export function usePaymentTransactions(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: ['payment', 'transactions', params],
     queryFn: async () => {
